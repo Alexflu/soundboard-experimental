@@ -56,3 +56,8 @@
   margin-left: auto;
   color: #ccc;
 }
+
+
+.sounds-view .bound-hotkey-button {
+  margin-left: 8px;
+}

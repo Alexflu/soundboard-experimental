@@ -7,14 +7,7 @@ import FilterComponent from '../component/FilterComponent';
 import AddSound from '../component/AddSound';
 import Filters from '../../domain/entities/Filters';
 import soundboardDomain from '../../domain/SoundboardDomain';
-import {
-  HotkeySoundMap,
-  UserPreferences,
-} from '../../domain/entities/UserPreferences';
-import {
-  HotkeyAction,
-  HotkeyMap,
-} from '../../domain/entities/HotkeyPreferences';
+import { HotkeyBinding, UserPreferences } from '../../domain/entities/UserPreferences';
 
 const SoundsView = ({
   stopAllSounds,
@@ -27,21 +20,9 @@ const SoundsView = ({
 }) => {
   const [sounds, setSounds] = useState([] as Sound[]);
   const [filters, setFilters] = useState(new Filters(''));
-  const [hotkeySounds, setHotkeySounds] = useState<HotkeySoundMap>(
-    soundboardDomain.getUserPreferences().hotkeySounds
+  const [bindings, setBindings] = useState<HotkeyBinding[]>(
+    soundboardDomain.getUserPreferences().bindings
   );
-  const [hotkeys, setHotkeys] = useState<HotkeyMap>(
-    soundboardDomain.getUserPreferences().hotkeys
-  );
-  const searchSlotActions: HotkeyAction[] = [
-    'searchSlot1',
-    'searchSlot2',
-    'searchSlot3',
-    'searchSlot4',
-    'searchSlot5',
-    'searchSlot6',
-    'searchSlot7',
-  ];
 
   const reloadSounds = () => {
     soundboardDomain
@@ -58,27 +39,34 @@ const SoundsView = ({
     setGlobalFilters(updated);
   };
   const stopAll = () => stopAllSounds.forEach((stopSound) => stopSound());
-  const renderBoundHotkeys = () =>
-    searchSlotActions
-      .map((action) => ({
-        action,
-        sound: hotkeySounds[action],
-      }))
-      .filter((entry) => !!entry.sound);
 
-  const playBoundHotkeySound = (action: HotkeyAction) => {
-    const player = soundboardDomain.playBoundHotkeySound(action);
+  const playBoundHotkeySound = (binding: HotkeyBinding) => {
+    const player = soundboardDomain.playBoundHotkeySound(binding.key);
     if (player) {
       registerSound(() => player.stop());
     }
+  };
+
+  const editBindingKey = (binding: HotkeyBinding) => {
+    const nextKey = window.prompt('Edit hotkey', binding.key);
+    if (!nextKey || nextKey === binding.key) {
+      return;
+    }
+
+    soundboardDomain.updateBindingKey(binding.key, nextKey);
+    toast.success(`Updated hotkey to ${nextKey}`);
+  };
+
+  const removeBinding = (binding: HotkeyBinding) => {
+    soundboardDomain.removeBinding(binding.key);
+    toast.success(`Removed hotkey ${binding.key}`);
   };
 
   useEffect(() => reloadSounds(), [filters]);
   useEffect(() => {
     const unregister = soundboardDomain.watchUserPreferences(
       (updatedPreferences: UserPreferences) => {
-        setHotkeySounds(updatedPreferences.hotkeySounds);
-        setHotkeys(updatedPreferences.hotkeys);
+        setBindings(updatedPreferences.bindings);
       }
     );
     return () => unregister();
@@ -94,22 +82,37 @@ const SoundsView = ({
       </div>
 
       <div className="sounds">
-        {!filters.search && (
+        {!filters.search && bindings.length > 0 && (
           <div className="bound-hotkeys">
             <span className="bound-hotkeys-title">Bound hotkey sounds</span>
-            {renderBoundHotkeys().map((entry) => (
-              <div className="bound-hotkey-row" key={entry.action}>
+            {bindings.map((binding) => (
+              <div
+                className="bound-hotkey-row"
+                key={`${binding.key}-${binding.sound.id}`}
+              >
                 <button
                   type="button"
                   className="bound-hotkey-play"
-                  onClick={() => playBoundHotkeySound(entry.action)}
+                  onClick={() => playBoundHotkeySound(binding)}
                 >
                   <FaPlay />
                 </button>
-                <span>{entry.sound?.name}</span>
-                <span className="bound-hotkey-label">
-                  ({hotkeys[entry.action]})
-                </span>
+                <span>{binding.sound.name}</span>
+                <span className="bound-hotkey-label">({binding.key})</span>
+                <button
+                  type="button"
+                  className="bound-hotkey-button"
+                  onClick={() => editBindingKey(binding)}
+                >
+                  Edit key
+                </button>
+                <button
+                  type="button"
+                  className="bound-hotkey-button"
+                  onClick={() => removeBinding(binding)}
+                >
+                  Remove
+                </button>
               </div>
             ))}
           </div>

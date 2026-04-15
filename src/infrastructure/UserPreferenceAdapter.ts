@@ -4,7 +4,6 @@ import {
   AudioOutput,
   UserPreferences,
 } from '../domain/entities/UserPreferences';
-import { normalizeHotkeys } from '../domain/entities/HotkeyPreferences';
 
 const path = require('path');
 
@@ -103,8 +102,10 @@ class UserPreferenceAdapter {
       return new UserPreferences(
         json.audioOutput,
         json.pathToSoundsJson,
-        normalizeHotkeys(json.hotkeys),
-        json.hotkeySounds
+        json.hotkeys,
+        json.bindings,
+        json.hotkeySounds,
+        json.hotkeys
       );
     } catch (error) {
       return null;

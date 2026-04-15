@@ -11,10 +11,10 @@ import soundboardDomain from './domain/SoundboardDomain';
 import logo from '../assets/logo.svg';
 import Filters from './domain/entities/Filters';
 import {
-  HOTKEY_ACTIONS,
-  HotkeyAction,
+  DEFAULT_SEARCH_SLOT_HOTKEYS,
   HotkeyMap,
 } from './domain/entities/HotkeyPreferences';
+import { HotkeyBinding } from './domain/entities/UserPreferences';
 
 const globalShortcut = require('electron').remote?.globalShortcut;
 
@@ -24,16 +24,10 @@ export default function App() {
   const [hotkeys, setHotkeys] = useState<HotkeyMap>(
     soundboardDomain.getUserPreferences().hotkeys
   );
+  const [bindings, setBindings] = useState<HotkeyBinding[]>(
+    soundboardDomain.getUserPreferences().bindings
+  );
   const filtersRef = useRef(filters);
-  const searchSlotActions: HotkeyAction[] = [
-    'searchSlot1',
-    'searchSlot2',
-    'searchSlot3',
-    'searchSlot4',
-    'searchSlot5',
-    'searchSlot6',
-    'searchSlot7',
-  ];
 
   const registerSound = (stopSound: () => void) =>
     setStopAllSounds((current) => current.concat(stopSound));
@@ -54,42 +48,6 @@ export default function App() {
     );
   };
 
-  const actionHandlers: Record<HotkeyAction, () => Promise<void>> = {
-    randomSound: async () => {
-      const player = await soundboardDomain.playRandomSound();
-      registerPlayer(player);
-    },
-    searchSlot1: async () => {},
-    searchSlot2: async () => {},
-    searchSlot3: async () => {},
-    searchSlot4: async () => {},
-    searchSlot5: async () => {},
-    searchSlot6: async () => {},
-    searchSlot7: async () => {},
-  };
-
-  searchSlotActions.forEach((action, index) => {
-    actionHandlers[action] = async () => {
-      const player = await soundboardDomain.playSearchSlotHotkeySound(
-        action,
-        index,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    };
-  });
-
-  const errorByAction: Record<HotkeyAction, string> = {
-    randomSound: 'Cannot play random sound',
-    searchSlot1: 'Cannot play sound in slot 1',
-    searchSlot2: 'Cannot play sound in slot 2',
-    searchSlot3: 'Cannot play sound in slot 3',
-    searchSlot4: 'Cannot play sound in slot 4',
-    searchSlot5: 'Cannot play sound in slot 5',
-    searchSlot6: 'Cannot play sound in slot 6',
-    searchSlot7: 'Cannot play sound in slot 7',
-  };
-
   useEffect(() => {
     filtersRef.current = filters;
   }, [filters]);
@@ -98,6 +56,7 @@ export default function App() {
     const unregisterPreferenceWatcher = soundboardDomain.watchUserPreferences(
       (userPreferences) => {
         setHotkeys(userPreferences.hotkeys);
+        setBindings(userPreferences.bindings);
       }
     );
 
@@ -108,26 +67,70 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    HOTKEY_ACTIONS.forEach((action) => {
-      const accelerator = hotkeys[action];
+    const registeredAccelerators: string[] = [];
+    const registerAccelerator = (
+      accelerator: string,
+      handler: () => Promise<void>,
+      errorMessage: string
+    ) => {
+      if (!accelerator || registeredAccelerators.includes(accelerator)) {
+        return;
+      }
+
       globalShortcut?.register(accelerator, () => {
         if (isTypingInField()) {
           return;
         }
 
-        actionHandlers[action]().catch((e) => {
-          toast.error(errorByAction[action]);
+        handler().catch((e) => {
+          toast.error(errorMessage);
           console.error(e);
         });
       });
+
+      registeredAccelerators.push(accelerator);
+    };
+
+    registerAccelerator(
+      hotkeys.randomSound,
+      async () => {
+        const player = await soundboardDomain.playRandomSound();
+        registerPlayer(player);
+      },
+      'Cannot play random sound'
+    );
+
+    bindings.forEach((binding) => {
+      registerAccelerator(
+        binding.key,
+        async () => {
+          const player = soundboardDomain.playBoundHotkeySound(binding.key);
+          registerPlayer(player);
+        },
+        'Cannot play bound hotkey sound'
+      );
+    });
+
+    DEFAULT_SEARCH_SLOT_HOTKEYS.forEach((defaultKey, index) => {
+      registerAccelerator(
+        defaultKey,
+        async () => {
+          const player = await soundboardDomain.playLocalSoundByIndex(
+            index,
+            filtersRef.current
+          );
+          registerPlayer(player);
+        },
+        `Cannot play sound in slot ${index + 1}`
+      );
     });
 
     return () => {
-      HOTKEY_ACTIONS.forEach((action) => {
-        globalShortcut?.unregister(hotkeys[action]);
+      registeredAccelerators.forEach((accelerator) => {
+        globalShortcut?.unregister(accelerator);
       });
     };
-  }, [hotkeys]);
+  }, [hotkeys, bindings]);
 
   return (
     <Router>

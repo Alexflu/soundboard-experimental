@@ -1,23 +1,20 @@
 import {
-  DEFAULT_HOTKEYS,
+  DEFAULT_RANDOM_HOTKEY,
   normalizeHotkeys,
 } from './HotkeyPreferences';
 
 describe('HotkeyPreferences', () => {
   it('keeps existing defaults when no hotkeys are provided', () => {
-    expect(normalizeHotkeys()).toEqual(DEFAULT_HOTKEYS);
+    expect(normalizeHotkeys()).toEqual({ randomSound: DEFAULT_RANDOM_HOTKEY });
   });
 
-  it('supports partial overrides and keeps missing defaults', () => {
+  it('supports randomSound override', () => {
     expect(
       normalizeHotkeys({
         randomSound: 'Alt+F1',
-        searchSlot1: 'Alt+1',
       })
     ).toEqual({
-      ...DEFAULT_HOTKEYS,
       randomSound: 'Alt+F1',
-      searchSlot1: 'Alt+1',
     });
   });
 });

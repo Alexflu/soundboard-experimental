@@ -6,7 +6,6 @@ import Player from '../../domain/entities/Player';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import Source from '../../domain/entities/Source';
 import RemoveSound from './RemoveSound';
-import { HotkeyAction } from '../../domain/entities/HotkeyPreferences';
 
 const SoundComponent = ({
   sound,
@@ -21,18 +20,7 @@ const SoundComponent = ({
     new Player(sound, soundboardDomain.getUserPreferences().audioOutput.id)
   );
   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedHotkeyAction, setSelectedHotkeyAction] = useState<
-    HotkeyAction
-  >('searchSlot1');
-  const hotkeySlotOptions: Array<{ action: HotkeyAction; label: string }> = [
-    { action: 'searchSlot1', label: 'Search Slot 1' },
-    { action: 'searchSlot2', label: 'Search Slot 2' },
-    { action: 'searchSlot3', label: 'Search Slot 3' },
-    { action: 'searchSlot4', label: 'Search Slot 4' },
-    { action: 'searchSlot5', label: 'Search Slot 5' },
-    { action: 'searchSlot6', label: 'Search Slot 6' },
-    { action: 'searchSlot7', label: 'Search Slot 7' },
-  ];
+  const [bindingKey, setBindingKey] = useState('Control+F2');
 
   const stop = () => {
     player.stop();
@@ -47,8 +35,13 @@ const SoundComponent = ({
   };
 
   const bindToHotkey = () => {
-    soundboardDomain.bindSoundToHotkey(selectedHotkeyAction, sound);
-    toast.success(`Bound ${sound.name} to ${selectedHotkeyAction}`);
+    if (!bindingKey) {
+      toast.error('Please enter a hotkey');
+      return;
+    }
+
+    soundboardDomain.bindSoundToHotkey(bindingKey, sound);
+    toast.success(`Bound ${sound.name} to ${bindingKey}`);
   };
 
   return (
@@ -73,22 +66,12 @@ const SoundComponent = ({
         </div>
       ) : (
         <div className="row-end">
-          <select
+          <input
             className="bind-hotkey-select"
-            value={selectedHotkeyAction}
-            onChange={(event) =>
-              setSelectedHotkeyAction(event.target.value as HotkeyAction)
-            }
-          >
-            {hotkeySlotOptions.map((hotkeySlotOption) => (
-              <option
-                key={hotkeySlotOption.action}
-                value={hotkeySlotOption.action}
-              >
-                {hotkeySlotOption.label}
-              </option>
-            ))}
-          </select>
+            value={bindingKey}
+            onChange={(event) => setBindingKey(event.target.value)}
+            placeholder="Control+F2"
+          />
           <button
             className="bind-hotkey-button"
             type="button"

@@ -1,5 +1,9 @@
 import { toast } from 'react-toastify';
-import { HotkeySound, UserPreferences } from './entities/UserPreferences';
+import {
+  HotkeyBinding,
+  HotkeySound,
+  UserPreferences,
+} from './entities/UserPreferences';
 import UserPreferenceAdapter from '../infrastructure/UserPreferenceAdapter';
 import LocalSoundAdapter from '../infrastructure/LocalSoundAdapter';
 import Sound from './entities/Sound';
@@ -7,7 +11,6 @@ import Player from './entities/Player';
 import MyInstantSoundAdapter from '../infrastructure/MyInstantSoundAdapter';
 import Filters from './entities/Filters';
 import Source from './entities/Source';
-import { HotkeyAction } from './entities/HotkeyPreferences';
 
 export class SoundboardDomain {
   localSoundAdapter: LocalSoundAdapter;
@@ -98,40 +101,48 @@ export class SoundboardDomain {
     return null;
   }
 
-  async playSearchSlotHotkeySound(
-    action: HotkeyAction,
-    index: number,
-    filters: Filters
-  ): Promise<Player | null> {
-    const hotkeySound = this.getUserPreferences().hotkeySounds[action];
-    if (hotkeySound) {
-      const player = this.playSound(
-        new Sound(hotkeySound.name, '', hotkeySound.url, Source.MYINSTANT)
-      );
-      toast.info(`Hotkey sound: ${hotkeySound.name}`);
-      return player;
+  playBoundHotkeySound(key: string): Player | null {
+    const binding = this.findBindingByKey(key);
+    if (!binding) {
+      return null;
     }
 
-    return this.playLocalSoundByIndex(index, filters);
+    const player = this.playSound(
+      new Sound(
+        binding.sound.name,
+        '',
+        binding.sound.url,
+        Source.MYINSTANT
+      )
+    );
+    toast.info(`Hotkey sound: ${binding.sound.name}`);
+    return player;
   }
 
-  bindSoundToHotkey(action: HotkeyAction, sound: Sound) {
+  bindSoundToHotkey(key: string, sound: Sound) {
     const userPreferences = this.getUserPreferences();
     this.setUserPreferences(
-      userPreferences.setHotkeySound(
-        action,
+      userPreferences.upsertBinding(
+        key,
         new HotkeySound(sound.path, sound.name, sound.path)
       )
     );
   }
 
-  playBoundHotkeySound(action: HotkeyAction): Player | null {
-    const hotkeySound = this.getUserPreferences().hotkeySounds[action];
-    if (!hotkeySound) {
-      return null;
-    }
-    return this.playSound(
-      new Sound(hotkeySound.name, '', hotkeySound.url, Source.MYINSTANT)
+  removeBinding(key: string) {
+    this.setUserPreferences(this.getUserPreferences().removeBinding(key));
+  }
+
+  updateBindingKey(previousKey: string, nextKey: string) {
+    this.setUserPreferences(
+      this.getUserPreferences().updateBindingKey(previousKey, nextKey)
+    );
+  }
+
+  findBindingByKey(key: string): HotkeyBinding | null {
+    return (
+      this.getUserPreferences().bindings.find((binding) => binding.key === key) ||
+      null
     );
   }
 

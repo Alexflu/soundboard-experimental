@@ -1,17 +1,26 @@
-export type HotkeyAction =
-  | 'randomSound'
-  | 'searchSlot1'
-  | 'searchSlot2'
-  | 'searchSlot3'
-  | 'searchSlot4'
-  | 'searchSlot5'
-  | 'searchSlot6'
-  | 'searchSlot7';
+export type HotkeyAction = 'randomSound';
 
 export type HotkeyMap = Record<HotkeyAction, string>;
 
-export const HOTKEY_ACTIONS: HotkeyAction[] = [
-  'randomSound',
+export const DEFAULT_RANDOM_HOTKEY = 'Control+F1';
+
+export const DEFAULT_SEARCH_SLOT_HOTKEYS = [
+  'Control+F2',
+  'Control+F3',
+  'Control+F4',
+  'Control+F5',
+  'Control+F6',
+  'Control+F7',
+  'Control+F8',
+];
+
+export const normalizeHotkeys = (
+  hotkeys?: Partial<HotkeyMap> | null
+): HotkeyMap => ({
+  randomSound: hotkeys?.randomSound || DEFAULT_RANDOM_HOTKEY,
+});
+
+export const LEGACY_SEARCH_SLOT_ACTIONS = [
   'searchSlot1',
   'searchSlot2',
   'searchSlot3',
@@ -19,26 +28,10 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   'searchSlot5',
   'searchSlot6',
   'searchSlot7',
-];
+] as const;
 
-export const DEFAULT_HOTKEYS: HotkeyMap = {
-  randomSound: 'Control+F1',
-  searchSlot1: 'Control+F2',
-  searchSlot2: 'Control+F3',
-  searchSlot3: 'Control+F4',
-  searchSlot4: 'Control+F5',
-  searchSlot5: 'Control+F6',
-  searchSlot6: 'Control+F7',
-  searchSlot7: 'Control+F8',
-};
+export type LegacySearchSlotAction = (typeof LEGACY_SEARCH_SLOT_ACTIONS)[number];
 
-export const normalizeHotkeys = (
-  hotkeys?: Partial<HotkeyMap> | null
-): HotkeyMap =>
-  HOTKEY_ACTIONS.reduce(
-    (acc, action) => ({
-      ...acc,
-      [action]: hotkeys?.[action] || DEFAULT_HOTKEYS[action],
-    }),
-    {} as HotkeyMap
-  );
+export type LegacyHotkeyMap = Partial<
+  Record<HotkeyAction | LegacySearchSlotAction, string>
+>;
