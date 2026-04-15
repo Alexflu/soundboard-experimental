@@ -43,6 +43,16 @@ export class SoundboardDomain {
     return this.userPreferenceAdapter.getUserPreferences();
   }
 
+  watchUserPreferences(
+    onChange: (userPreferences: UserPreferences) => void
+  ): () => void {
+    return this.userPreferenceAdapter.watch(onChange);
+  }
+
+  disposeUserPreferencesWatcher() {
+    this.userPreferenceAdapter.disposeWatcher();
+  }
+
   addSound(soundPath: string) {
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();
     this.localSoundAdapter.addSound(

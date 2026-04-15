@@ -21,6 +21,9 @@ const globalShortcut = require('electron').remote?.globalShortcut;
 export default function App() {
   const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
   const [filters, setFilters] = useState(new Filters(''));
+  const [hotkeys, setHotkeys] = useState<HotkeyMap>(
+    soundboardDomain.getUserPreferences().hotkeys
+  );
   const filtersRef = useRef(filters);
 
   const registerSound = (stopSound: () => void) =>
@@ -36,8 +39,10 @@ export default function App() {
     const activeElement = document.activeElement as HTMLElement | null;
     const typingTags = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
-    return !!activeElement &&
-      (typingTags.has(activeElement.tagName) || activeElement.isContentEditable);
+    return (
+      !!activeElement &&
+      (typingTags.has(activeElement.tagName) || activeElement.isContentEditable)
+    );
   };
 
   const actionHandlers: Record<HotkeyAction, () => Promise<void>> = {
@@ -112,8 +117,19 @@ export default function App() {
   }, [filters]);
 
   useEffect(() => {
-    const hotkeys: HotkeyMap = soundboardDomain.getUserPreferences().hotkeys;
+    const unregisterPreferenceWatcher = soundboardDomain.watchUserPreferences(
+      (userPreferences) => {
+        setHotkeys(userPreferences.hotkeys);
+      }
+    );
 
+    return () => {
+      unregisterPreferenceWatcher();
+      soundboardDomain.disposeUserPreferencesWatcher();
+    };
+  }, []);
+
+  useEffect(() => {
     HOTKEY_ACTIONS.forEach((action) => {
       const accelerator = hotkeys[action];
       globalShortcut?.register(accelerator, () => {
@@ -133,7 +149,7 @@ export default function App() {
         globalShortcut?.unregister(hotkeys[action]);
       });
     };
-  }, []);
+  }, [hotkeys]);
 
   return (
     <Router>
