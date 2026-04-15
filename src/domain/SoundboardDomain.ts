@@ -70,26 +70,26 @@ export class SoundboardDomain {
     }
     return null;
   }
-  
+
   async playLocalSoundByIndex(
     index: number,
     filters: Filters
   ): Promise<Player | null> {
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();
     const sounds = await this.getSounds(filters);
-    const sound = sounds[index];;
+    const sound = sounds[index];
 
-  if (sound) {
-    const audioOutput = userPreferences.audioOutput.id;
-    const player = new Player(sound, audioOutput);
-    player.play();
-    toast.info(`Sound: ${sound.name}`);
-    return player;
+    if (sound) {
+      const audioOutput = userPreferences.audioOutput.id;
+      const player = new Player(sound, audioOutput);
+      player.play();
+      toast.info(`Sound: ${sound.name}`);
+      return player;
+    }
+
+    toast.error(`No sound found in slot ${index + 1}`);
+    return null;
   }
-
-  toast.error(`No sound found in slot ${index + 1}`);
-  return null;
-}
 
   private getOneRandomLocalSound(): Sound | null {
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();

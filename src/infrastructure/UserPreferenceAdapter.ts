@@ -4,6 +4,7 @@ import {
   AudioOutput,
   UserPreferences,
 } from '../domain/entities/UserPreferences';
+import { normalizeHotkeys } from '../domain/entities/HotkeyPreferences';
 
 const path = require('path');
 
@@ -28,9 +29,12 @@ class UserPreferenceAdapter {
 
   private static parseDataFile(filePath: string): UserPreferences {
     try {
-      // @ts-ignore
-      const json = JSON.parse(fs.readFileSync(filePath));
-      return new UserPreferences(json.audioOutput, json.pathToSoundsJson);
+      const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      return new UserPreferences(
+        json.audioOutput,
+        json.pathToSoundsJson,
+        normalizeHotkeys(json.hotkeys)
+      );
     } catch (error) {
       return new UserPreferences(
         new AudioOutput('default', 'default'),

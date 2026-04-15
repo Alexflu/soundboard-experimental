@@ -10,6 +10,11 @@ import TopBarComponent from './application/component/TopBarComponent';
 import soundboardDomain from './domain/SoundboardDomain';
 import logo from '../assets/logo.svg';
 import Filters from './domain/entities/Filters';
+import {
+  HOTKEY_ACTIONS,
+  HotkeyAction,
+  HotkeyMap,
+} from './domain/entities/HotkeyPreferences';
 
 const globalShortcut = require('electron').remote?.globalShortcut;
 
@@ -17,114 +22,118 @@ export default function App() {
   const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
   const [filters, setFilters] = useState(new Filters(''));
   const filtersRef = useRef(filters);
+
   const registerSound = (stopSound: () => void) =>
-    setStopAllSounds(stopAllSounds.concat(stopSound));
+    setStopAllSounds((current) => current.concat(stopSound));
+
+  const registerPlayer = (player: { stop: () => void } | null) => {
+    if (player) {
+      registerSound(() => player.stop());
+    }
+  };
+
+  const isTypingInField = () => {
+    const activeElement = document.activeElement as HTMLElement | null;
+    const typingTags = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
+
+    return !!activeElement &&
+      (typingTags.has(activeElement.tagName) || activeElement.isContentEditable);
+  };
+
+  const actionHandlers: Record<HotkeyAction, () => Promise<void>> = {
+    randomSound: async () => {
+      const player = await soundboardDomain.playRandomSound();
+      registerPlayer(player);
+    },
+    searchSlot1: async () => {
+      const player = await soundboardDomain.playLocalSoundByIndex(
+        0,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    },
+    searchSlot2: async () => {
+      const player = await soundboardDomain.playLocalSoundByIndex(
+        1,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    },
+    searchSlot3: async () => {
+      const player = await soundboardDomain.playLocalSoundByIndex(
+        2,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    },
+    searchSlot4: async () => {
+      const player = await soundboardDomain.playLocalSoundByIndex(
+        3,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    },
+    searchSlot5: async () => {
+      const player = await soundboardDomain.playLocalSoundByIndex(
+        4,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    },
+    searchSlot6: async () => {
+      const player = await soundboardDomain.playLocalSoundByIndex(
+        5,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    },
+    searchSlot7: async () => {
+      const player = await soundboardDomain.playLocalSoundByIndex(
+        6,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    },
+  };
+
+  const errorByAction: Record<HotkeyAction, string> = {
+    randomSound: 'Cannot play random sound',
+    searchSlot1: 'Cannot play sound in slot 1',
+    searchSlot2: 'Cannot play sound in slot 2',
+    searchSlot3: 'Cannot play sound in slot 3',
+    searchSlot4: 'Cannot play sound in slot 4',
+    searchSlot5: 'Cannot play sound in slot 5',
+    searchSlot6: 'Cannot play sound in slot 6',
+    searchSlot7: 'Cannot play sound in slot 7',
+  };
+
   useEffect(() => {
     filtersRef.current = filters;
   }, [filters]);
 
-  globalShortcut?.register('Control+F1', () =>
-    soundboardDomain
-      .playRandomSound()
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play random sound');
-        console.error(e);
-      }),
-  );
-  globalShortcut?.register('Control+F2', () =>
-    soundboardDomain
-      .playLocalSoundByIndex(0, filtersRef.current)
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play sound in slot 1');
-        console.error(e);
-      }),
-  );
+  useEffect(() => {
+    const hotkeys: HotkeyMap = soundboardDomain.getUserPreferences().hotkeys;
 
-  globalShortcut?.register('Control+F3', () =>
-    soundboardDomain
-      .playLocalSoundByIndex(1, filtersRef.current)
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play sound in slot 2');
-        console.error(e);
-      }),
-  );
+    HOTKEY_ACTIONS.forEach((action) => {
+      const accelerator = hotkeys[action];
+      globalShortcut?.register(accelerator, () => {
+        if (isTypingInField()) {
+          return;
+        }
 
-  globalShortcut?.register('Control+F4', () =>
-    soundboardDomain
-      .playLocalSoundByIndex(2, filtersRef.current)
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play sound in slot 3');
-        console.error(e);
-      }),
-  );
+        actionHandlers[action]().catch((e) => {
+          toast.error(errorByAction[action]);
+          console.error(e);
+        });
+      });
+    });
 
-  globalShortcut?.register('Control+F5', () =>
-    soundboardDomain
-      .playLocalSoundByIndex(3, filtersRef.current)
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play sound in slot 4');
-        console.error(e);
-      }),
-  );
-
-  globalShortcut?.register('Control+F6', () =>
-    soundboardDomain
-      .playLocalSoundByIndex(4, filtersRef.current)
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play sound in slot 5');
-        console.error(e);
-      }),
-  );
-
-  globalShortcut?.register('Control+F7', () =>
-    soundboardDomain
-      .playLocalSoundByIndex(5, filtersRef.current)
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play sound in slot 6');
-        console.error(e);
-      }),
-  );
-
-  globalShortcut?.register('Control+F8', () =>
-    soundboardDomain
-      .playLocalSoundByIndex(6, filtersRef.current)
-      .then((player) => {
-        if (player) registerSound(() => player.stop());
-        return '';
-      })
-      .catch((e) => {
-        toast.error('Cannot play sound in slot 7');
-        console.error(e);
-      }),
-  );
+    return () => {
+      HOTKEY_ACTIONS.forEach((action) => {
+        globalShortcut?.unregister(hotkeys[action]);
+      });
+    };
+  }, []);
 
   return (
     <Router>
