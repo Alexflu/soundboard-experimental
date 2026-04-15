@@ -103,7 +103,8 @@ class UserPreferenceAdapter {
       return new UserPreferences(
         json.audioOutput,
         json.pathToSoundsJson,
-        normalizeHotkeys(json.hotkeys)
+        normalizeHotkeys(json.hotkeys),
+        json.hotkeySounds
       );
     } catch (error) {
       return null;

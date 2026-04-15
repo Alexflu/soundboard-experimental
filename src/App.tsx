@@ -25,6 +25,15 @@ export default function App() {
     soundboardDomain.getUserPreferences().hotkeys
   );
   const filtersRef = useRef(filters);
+  const searchSlotActions: HotkeyAction[] = [
+    'searchSlot1',
+    'searchSlot2',
+    'searchSlot3',
+    'searchSlot4',
+    'searchSlot5',
+    'searchSlot6',
+    'searchSlot7',
+  ];
 
   const registerSound = (stopSound: () => void) =>
     setStopAllSounds((current) => current.concat(stopSound));
@@ -50,56 +59,25 @@ export default function App() {
       const player = await soundboardDomain.playRandomSound();
       registerPlayer(player);
     },
-    searchSlot1: async () => {
-      const player = await soundboardDomain.playLocalSoundByIndex(
-        0,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    },
-    searchSlot2: async () => {
-      const player = await soundboardDomain.playLocalSoundByIndex(
-        1,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    },
-    searchSlot3: async () => {
-      const player = await soundboardDomain.playLocalSoundByIndex(
-        2,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    },
-    searchSlot4: async () => {
-      const player = await soundboardDomain.playLocalSoundByIndex(
-        3,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    },
-    searchSlot5: async () => {
-      const player = await soundboardDomain.playLocalSoundByIndex(
-        4,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    },
-    searchSlot6: async () => {
-      const player = await soundboardDomain.playLocalSoundByIndex(
-        5,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    },
-    searchSlot7: async () => {
-      const player = await soundboardDomain.playLocalSoundByIndex(
-        6,
-        filtersRef.current
-      );
-      registerPlayer(player);
-    },
+    searchSlot1: async () => {},
+    searchSlot2: async () => {},
+    searchSlot3: async () => {},
+    searchSlot4: async () => {},
+    searchSlot5: async () => {},
+    searchSlot6: async () => {},
+    searchSlot7: async () => {},
   };
+
+  searchSlotActions.forEach((action, index) => {
+    actionHandlers[action] = async () => {
+      const player = await soundboardDomain.playSearchSlotHotkeySound(
+        action,
+        index,
+        filtersRef.current
+      );
+      registerPlayer(player);
+    };
+  });
 
   const errorByAction: Record<HotkeyAction, string> = {
     randomSound: 'Cannot play random sound',

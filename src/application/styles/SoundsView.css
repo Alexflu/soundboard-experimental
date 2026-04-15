@@ -29,3 +29,30 @@
 .sounds-view .actions .button-stop-all .icon-stop-all {
   flex: 1;
 }
+
+.sounds-view .bound-hotkeys {
+  border-bottom: 1px solid grey;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.sounds-view .bound-hotkeys-title {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.sounds-view .bound-hotkey-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.sounds-view .bound-hotkey-play {
+  margin-right: 8px;
+}
+
+.sounds-view .bound-hotkey-label {
+  margin-left: auto;
+  color: #ccc;
+}

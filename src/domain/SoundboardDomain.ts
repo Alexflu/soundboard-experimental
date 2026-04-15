@@ -1,11 +1,13 @@
 import { toast } from 'react-toastify';
-import { UserPreferences } from './entities/UserPreferences';
+import { HotkeySound, UserPreferences } from './entities/UserPreferences';
 import UserPreferenceAdapter from '../infrastructure/UserPreferenceAdapter';
 import LocalSoundAdapter from '../infrastructure/LocalSoundAdapter';
 import Sound from './entities/Sound';
 import Player from './entities/Player';
 import MyInstantSoundAdapter from '../infrastructure/MyInstantSoundAdapter';
 import Filters from './entities/Filters';
+import Source from './entities/Source';
+import { HotkeyAction } from './entities/HotkeyPreferences';
 
 export class SoundboardDomain {
   localSoundAdapter: LocalSoundAdapter;
@@ -72,9 +74,7 @@ export class SoundboardDomain {
   async playRandomSound(): Promise<Player | null> {
     const randomSound = this.getOneRandomLocalSound();
     if (randomSound) {
-      const audioOutput = this.getUserPreferences().audioOutput.id;
-      const player = new Player(randomSound, audioOutput);
-      player.play();
+      const player = this.playSound(randomSound);
       toast.info(`Random sound: ${randomSound.name}`);
       return player;
     }
@@ -85,20 +85,61 @@ export class SoundboardDomain {
     index: number,
     filters: Filters
   ): Promise<Player | null> {
-    const userPreferences = this.userPreferenceAdapter.getUserPreferences();
     const sounds = await this.getSounds(filters);
     const sound = sounds[index];
 
     if (sound) {
-      const audioOutput = userPreferences.audioOutput.id;
-      const player = new Player(sound, audioOutput);
-      player.play();
+      const player = this.playSound(sound);
       toast.info(`Sound: ${sound.name}`);
       return player;
     }
 
     toast.error(`No sound found in slot ${index + 1}`);
     return null;
+  }
+
+  async playSearchSlotHotkeySound(
+    action: HotkeyAction,
+    index: number,
+    filters: Filters
+  ): Promise<Player | null> {
+    const hotkeySound = this.getUserPreferences().hotkeySounds[action];
+    if (hotkeySound) {
+      const player = this.playSound(
+        new Sound(hotkeySound.name, '', hotkeySound.url, Source.MYINSTANT)
+      );
+      toast.info(`Hotkey sound: ${hotkeySound.name}`);
+      return player;
+    }
+
+    return this.playLocalSoundByIndex(index, filters);
+  }
+
+  bindSoundToHotkey(action: HotkeyAction, sound: Sound) {
+    const userPreferences = this.getUserPreferences();
+    this.setUserPreferences(
+      userPreferences.setHotkeySound(
+        action,
+        new HotkeySound(sound.path, sound.name, sound.path)
+      )
+    );
+  }
+
+  playBoundHotkeySound(action: HotkeyAction): Player | null {
+    const hotkeySound = this.getUserPreferences().hotkeySounds[action];
+    if (!hotkeySound) {
+      return null;
+    }
+    return this.playSound(
+      new Sound(hotkeySound.name, '', hotkeySound.url, Source.MYINSTANT)
+    );
+  }
+
+  private playSound(sound: Sound): Player {
+    const audioOutput = this.getUserPreferences().audioOutput.id;
+    const player = new Player(sound, audioOutput);
+    player.play();
+    return player;
   }
 
   private getOneRandomLocalSound(): Sound | null {
