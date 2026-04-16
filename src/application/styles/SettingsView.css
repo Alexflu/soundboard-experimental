@@ -9,14 +9,3 @@
 .settings-view .button .icon{
    font-size: 45px;
 }
-
-.settings-view .hotkey-settings-row {
-   margin-bottom: 14px;
-   display: flex;
-   align-items: center;
-   gap: 12px;
-}
-
-.settings-view .hotkey-settings-row .label {
-   font-size: 20px;
-}

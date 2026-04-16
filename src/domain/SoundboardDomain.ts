@@ -112,8 +112,7 @@ export class SoundboardDomain {
     }
 
     const player = this.playSound(
-      new Sound(binding.sound.name, '', binding.sound.url, binding.sound.source),
-      binding.sound.outputDeviceId
+      new Sound(binding.sound.name, '', binding.sound.url, binding.sound.source)
     );
     if (player.player) {
       player.player.volume = binding.sound.volume;
@@ -159,12 +158,6 @@ export class SoundboardDomain {
     );
   }
 
-  setBindingOutputDevice(key: string, outputDeviceId?: string) {
-    this.setUserPreferences(
-      this.getUserPreferences().setBindingOutputDevice(key, outputDeviceId)
-    );
-  }
-
   findBindingByKey(key: string): HotkeyBinding | null {
     return (
       this.getUserPreferences().bindings.find(
@@ -189,9 +182,8 @@ export class SoundboardDomain {
     };
   }
 
-  private playSound(sound: Sound, outputDeviceId?: string): Player {
-    const globalAudioOutput = this.getUserPreferences().audioOutput.id;
-    const audioOutput = outputDeviceId || globalAudioOutput;
+  private playSound(sound: Sound): Player {
+    const audioOutput = this.getUserPreferences().audioOutput.id;
     const player = new Player(sound, audioOutput);
     player.play();
     return player;

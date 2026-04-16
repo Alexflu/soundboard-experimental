@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { FaGlobeAmericas, FaHdd, FaPlay, FaStop } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Sound from '../../domain/entities/Sound';
@@ -6,28 +6,23 @@ import Player from '../../domain/entities/Player';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import Source from '../../domain/entities/Source';
 import RemoveSound from './RemoveSound';
-import { beginHotkeyCapture } from './hotkeyCapture';
+import { getHotkeyFromEvent } from './hotkeyCapture';
 import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
 
 const SoundComponent = ({
   sound,
   registerSound,
   reloadSounds,
-  requireModifierForHotkeys,
-  existingBindingHotkey,
 }: {
   sound: Sound;
   registerSound: (stopSound: () => void) => void;
   reloadSounds: () => void;
-  requireModifierForHotkeys: boolean;
-  existingBindingHotkey?: string;
 }) => {
   const [player] = useState(
     new Player(sound, soundboardDomain.getUserPreferences().audioOutput.id)
   );
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCapturingHotkey, setIsCapturingHotkey] = useState(false);
-  const bindButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const stop = () => {
     player.stop();
@@ -47,28 +42,33 @@ const SoundComponent = ({
   };
 
   const startCapture = () => {
-    if (isCapturingHotkey || !bindButtonRef.current) {
+    if (isCapturingHotkey) {
       return;
     }
-
     setIsCapturingHotkey(true);
-    beginHotkeyCapture({
-      captureElement: bindButtonRef.current,
-      requireModifier: requireModifierForHotkeys,
-      onResolve: (hotkey) => {
-        bindToHotkey(hotkey);
-        setIsCapturingHotkey(false);
-      },
-      onCancel: () => setIsCapturingHotkey(false),
-    });
-  };
 
-  const renderBindingHint = () =>
-    existingBindingHotkey ? (
-      <span className="sound-binding-hint">
-        {toHotkeyDisplay(existingBindingHotkey)}
-      </span>
-    ) : null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.key === 'Escape') {
+        setIsCapturingHotkey(false);
+        window.removeEventListener('keydown', onKeyDown, true);
+        return;
+      }
+
+      const hotkey = getHotkeyFromEvent(event);
+      if (!hotkey) {
+        return;
+      }
+
+      bindToHotkey(hotkey);
+      setIsCapturingHotkey(false);
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+
+    window.addEventListener('keydown', onKeyDown, true);
+  };
 
   return (
     <div className="sound-component animated fadeInRight">
@@ -85,7 +85,6 @@ const SoundComponent = ({
       </div>
       {sound.source === Source.LOCAL ? (
         <div className="row-end">
-          {renderBindingHint()}
           <div className="animated fadeInRight remove-button-container">
             <RemoveSound sound={sound} reloadSounds={reloadSounds} />
           </div>
@@ -93,16 +92,12 @@ const SoundComponent = ({
         </div>
       ) : (
         <div className="row-end">
-          {renderBindingHint()}
           <button
-            ref={bindButtonRef}
             className="bind-hotkey-button"
             type="button"
             onClick={startCapture}
           >
-            {isCapturingHotkey
-              ? 'Press keys (Esc/click/outside to cancel)'
-              : 'Bind hotkey'}
+            {isCapturingHotkey ? 'Press keys (Esc to cancel)' : 'Bind hotkey'}
           </button>
           <FaGlobeAmericas className="source-icon" title={sound.source} />
         </div>

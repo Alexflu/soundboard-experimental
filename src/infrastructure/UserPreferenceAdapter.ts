@@ -105,8 +105,7 @@ class UserPreferenceAdapter {
         json.hotkeys,
         json.bindings,
         json.hotkeySounds,
-        json.hotkeys,
-        json.requireModifierForHotkeys !== false
+        json.hotkeys
       );
     } catch (error) {
       return null;
