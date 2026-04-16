@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FaGlobeAmericas,
   FaHdd,
@@ -28,10 +28,12 @@ const SoundsView = ({
   stopAllSounds,
   registerSound,
   setGlobalFilters,
+  onHotkeyCaptureStateChange,
 }: {
   stopAllSounds: (() => void)[];
   registerSound: (stopSound: () => void) => void;
   setGlobalFilters: (filters: Filters) => void;
+  onHotkeyCaptureStateChange: (active: boolean) => void;
 }) => {
   const [sounds, setSounds] = useState([] as Sound[]);
   const [filters, setFilters] = useState(new Filters(''));
@@ -41,6 +43,15 @@ const SoundsView = ({
   const [playingProgress, setPlayingProgress] = useState<
     Record<string, number>
   >({});
+  const [activeBindingCaptureKey, setActiveBindingCaptureKey] = useState<
+    string | null
+  >(null);
+  const [activeSoundCaptureCount, setActiveSoundCaptureCount] = useState(0);
+  const captureListenerRef = useRef<{
+    keyDown: (event: KeyboardEvent) => void;
+    mouseDown: (event: MouseEvent) => void;
+    timeoutId: ReturnType<typeof setTimeout>;
+  } | null>(null);
 
   const reloadSounds = () => {
     soundboardDomain
@@ -65,13 +76,32 @@ const SoundsView = ({
     }
   };
 
-  const editBindingKey = (binding: HotkeyBinding) => {
+  const clearBindingCapture = () => {
+    if (!captureListenerRef.current) {
+      return;
+    }
+
+    const { keyDown, mouseDown, timeoutId } = captureListenerRef.current;
+    window.removeEventListener('keydown', keyDown, true);
+    document.removeEventListener('mousedown', mouseDown, true);
+    clearTimeout(timeoutId);
+    captureListenerRef.current = null;
+    setActiveBindingCaptureKey(null);
+  };
+
+  const editBindingKey = (
+    binding: HotkeyBinding,
+    trigger: HTMLButtonElement | null
+  ) => {
+    clearBindingCapture();
+    setActiveBindingCaptureKey(binding.key);
+
     const onKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
 
       if (event.key === 'Escape') {
-        window.removeEventListener('keydown', onKeyDown, true);
+        clearBindingCapture();
         return;
       }
 
@@ -82,9 +112,22 @@ const SoundsView = ({
 
       soundboardDomain.updateBindingKey(binding.key, nextKey);
       toast.success(`Updated hotkey to ${toHotkeyDisplay(nextKey)}`);
-      window.removeEventListener('keydown', onKeyDown, true);
+      clearBindingCapture();
     };
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (trigger && target && trigger.contains(target)) {
+        return;
+      }
+      clearBindingCapture();
+    };
+
+    const timeoutId = setTimeout(() => clearBindingCapture(), 5000);
+
+    captureListenerRef.current = { keyDown: onKeyDown, mouseDown: onMouseDown, timeoutId };
     window.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('mousedown', onMouseDown, true);
   };
 
   const removeBinding = (binding: HotkeyBinding) => {
@@ -98,6 +141,19 @@ const SoundsView = ({
   };
 
   useEffect(() => reloadSounds(), [filters]);
+  useEffect(
+    () => () => {
+      if (!captureListenerRef.current) {
+        return;
+      }
+      const { keyDown, mouseDown, timeoutId } = captureListenerRef.current;
+      window.removeEventListener('keydown', keyDown, true);
+      document.removeEventListener('mousedown', mouseDown, true);
+      clearTimeout(timeoutId);
+      captureListenerRef.current = null;
+    },
+    []
+  );
   useEffect(() => {
     const unregister = soundboardDomain.watchUserPreferences(
       (updatedPreferences: UserPreferences) => {
@@ -106,6 +162,27 @@ const SoundsView = ({
     );
     return () => unregister();
   }, []);
+
+  useEffect(() => {
+    onHotkeyCaptureStateChange(
+      activeBindingCaptureKey !== null || activeSoundCaptureCount > 0
+    );
+  }, [
+    activeBindingCaptureKey,
+    activeSoundCaptureCount,
+    onHotkeyCaptureStateChange,
+  ]);
+
+  const updateSoundCaptureCount = (active: boolean) =>
+    setActiveSoundCaptureCount((current) =>
+      Math.max(0, current + (active ? 1 : -1))
+    );
+
+  const getBoundHotkeyForSound = (sound: Sound) =>
+    bindings.find(
+      (binding) =>
+        binding.sound.id === sound.path && binding.sound.source === sound.source
+    )?.key || null;
 
   useEffect(() => {
     const unregisterPlayback = soundboardDomain.onBoundPlayback(
@@ -189,9 +266,16 @@ const SoundsView = ({
                   <button
                     type="button"
                     className="bound-hotkey-label"
-                    onClick={() => editBindingKey(binding)}
+                    onClick={(event) =>
+                      editBindingKey(
+                        binding,
+                        event.currentTarget as HTMLButtonElement
+                      )
+                    }
                   >
-                    {toHotkeyDisplay(binding.key)}
+                    {activeBindingCaptureKey === binding.key
+                      ? 'Press keys'
+                      : toHotkeyDisplay(binding.key)}
                   </button>
                   <div className="bound-hotkey-source-control">
                     {getSourceIcon(binding)}
@@ -230,6 +314,8 @@ const SoundsView = ({
             sound={sound}
             registerSound={registerSound}
             reloadSounds={reloadSounds}
+            boundHotkey={getBoundHotkeyForSound(sound)}
+            onCaptureStateChange={updateSoundCaptureCount}
           />
         ))}
       </div>
