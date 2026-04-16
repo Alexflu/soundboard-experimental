@@ -10,7 +10,6 @@ import Sound from './entities/Sound';
 import Player from './entities/Player';
 import MyInstantSoundAdapter from '../infrastructure/MyInstantSoundAdapter';
 import Filters from './entities/Filters';
-import Source from './entities/Source';
 
 export class SoundboardDomain {
   localSoundAdapter: LocalSoundAdapter;
@@ -18,6 +17,10 @@ export class SoundboardDomain {
   myInstantSoundAdapter: MyInstantSoundAdapter;
 
   userPreferenceAdapter: UserPreferenceAdapter;
+
+  private readonly boundPlaybackListeners: Array<
+    (payload: { key: string; player: Player; soundId: string }) => void
+  >;
 
   constructor(
     localSoundAdapter: LocalSoundAdapter,
@@ -27,6 +30,7 @@ export class SoundboardDomain {
     this.localSoundAdapter = localSoundAdapter;
     this.myInstantSoundAdapter = myInstantSoundAdapter;
     this.userPreferenceAdapter = userPreferenceAdapter;
+    this.boundPlaybackListeners = [];
   }
 
   async getSounds(filters: Filters): Promise<Sound[]> {
@@ -108,23 +112,27 @@ export class SoundboardDomain {
     }
 
     const player = this.playSound(
-      new Sound(
-        binding.sound.name,
-        '',
-        binding.sound.url,
-        Source.MYINSTANT
-      )
+      new Sound(binding.sound.name, '', binding.sound.url, binding.sound.source)
     );
-    toast.info(`Hotkey sound: ${binding.sound.name}`);
+    if (player.player) {
+      player.player.volume = binding.sound.volume;
+    }
+    this.boundPlaybackListeners.forEach((listener) =>
+      listener({ key, player, soundId: binding.sound.id })
+    );
     return player;
   }
 
   bindSoundToHotkey(key: string, sound: Sound) {
     const userPreferences = this.getUserPreferences();
+    if (key === userPreferences.hotkeys.stopAllSounds) {
+      toast.error('This hotkey is reserved for Stop All');
+      return;
+    }
     this.setUserPreferences(
       userPreferences.upsertBinding(
         key,
-        new HotkeySound(sound.path, sound.name, sound.path)
+        new HotkeySound(sound.path, sound.name, sound.path, sound.source)
       )
     );
   }
@@ -134,16 +142,44 @@ export class SoundboardDomain {
   }
 
   updateBindingKey(previousKey: string, nextKey: string) {
+    const userPreferences = this.getUserPreferences();
+    if (nextKey === userPreferences.hotkeys.stopAllSounds) {
+      toast.error('This hotkey is reserved for Stop All');
+      return;
+    }
     this.setUserPreferences(
-      this.getUserPreferences().updateBindingKey(previousKey, nextKey)
+      userPreferences.updateBindingKey(previousKey, nextKey)
+    );
+  }
+
+  setBindingVolume(key: string, volume: number) {
+    this.setUserPreferences(
+      this.getUserPreferences().setBindingVolume(key, volume)
     );
   }
 
   findBindingByKey(key: string): HotkeyBinding | null {
     return (
-      this.getUserPreferences().bindings.find((binding) => binding.key === key) ||
-      null
+      this.getUserPreferences().bindings.find(
+        (binding) => binding.key === key
+      ) || null
     );
+  }
+
+  onBoundPlayback(
+    callback: (payload: {
+      key: string;
+      player: Player;
+      soundId: string;
+    }) => void
+  ): () => void {
+    this.boundPlaybackListeners.push(callback);
+    return () => {
+      const index = this.boundPlaybackListeners.indexOf(callback);
+      if (index >= 0) {
+        this.boundPlaybackListeners.splice(index, 1);
+      }
+    };
   }
 
   private playSound(sound: Sound): Player {

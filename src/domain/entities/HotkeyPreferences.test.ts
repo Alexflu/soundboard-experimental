@@ -1,11 +1,15 @@
 import {
   DEFAULT_RANDOM_HOTKEY,
+  DEFAULT_STOP_ALL_HOTKEY,
   normalizeHotkeys,
 } from './HotkeyPreferences';
 
 describe('HotkeyPreferences', () => {
   it('keeps existing defaults when no hotkeys are provided', () => {
-    expect(normalizeHotkeys()).toEqual({ randomSound: DEFAULT_RANDOM_HOTKEY });
+    expect(normalizeHotkeys()).toEqual({
+      randomSound: DEFAULT_RANDOM_HOTKEY,
+      stopAllSounds: DEFAULT_STOP_ALL_HOTKEY,
+    });
   });
 
   it('supports randomSound override', () => {
@@ -15,6 +19,7 @@ describe('HotkeyPreferences', () => {
       })
     ).toEqual({
       randomSound: 'Alt+F1',
+      stopAllSounds: DEFAULT_STOP_ALL_HOTKEY,
     });
   });
 });

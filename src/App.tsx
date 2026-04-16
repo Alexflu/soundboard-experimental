@@ -37,6 +37,7 @@ export default function App() {
       registerSound(() => player.stop());
     }
   };
+  const stopAll = () => stopAllSounds.forEach((stopSound) => stopSound());
 
   const isTypingInField = () => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -111,6 +112,12 @@ export default function App() {
       );
     });
 
+    registerAccelerator(
+      hotkeys.stopAllSounds,
+      async () => stopAll(),
+      'Cannot stop all sounds'
+    );
+
     DEFAULT_SEARCH_SLOT_HOTKEYS.forEach((defaultKey, index) => {
       registerAccelerator(
         defaultKey,
@@ -130,7 +137,7 @@ export default function App() {
         globalShortcut?.unregister(accelerator);
       });
     };
-  }, [hotkeys, bindings]);
+  }, [hotkeys, bindings, stopAllSounds]);
 
   return (
     <Router>
