@@ -5,8 +5,10 @@ import Filters from '../../domain/entities/Filters';
 
 const FilterComponent = ({
   sendFiltersToParent,
+  onSearchFocus,
 }: {
   sendFiltersToParent: (filters: Filters) => void;
+  onSearchFocus?: () => void;
 }) => {
   const [search, setSearch] = useState('');
 
@@ -23,6 +25,7 @@ const FilterComponent = ({
         debounceTimeout={400}
         value={search}
         onChange={onChange}
+        onFocus={onSearchFocus}
       />
     </div>
   );

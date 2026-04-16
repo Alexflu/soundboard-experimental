@@ -141,3 +141,26 @@
   font-size: 12px;
   color: #afafaf;
 }
+
+.sounds-view .actions .button-record {
+  margin-left: 8px;
+  background-color: initial;
+  color: #ddd;
+  border: 2px solid #888;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  height: 36px;
+  width: 36px;
+}
+
+.sounds-view .actions .button-record.active {
+  color: #ff5f5f;
+  border-color: #ff5f5f;
+}
+
+.sounds-view .actions .button-record .icon-recording {
+  font-size: 12px;
+}

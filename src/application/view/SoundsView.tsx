@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  FaCircle,
   FaGlobeAmericas,
   FaHdd,
+  FaMicrophone,
   FaPlay,
   FaStop,
   FaTrash,
@@ -22,7 +24,29 @@ import {
   DEFAULT_STOP_ALL_HOTKEY,
   toHotkeyDisplay,
 } from '../../domain/entities/HotkeyPreferences';
-import { getHotkeyFromEvent } from '../component/hotkeyCapture';
+import {
+  beginHotkeyCapture,
+  cancelActiveHotkeyCapture,
+} from '../component/hotkeyCapture';
+
+const fs = require('fs');
+const path = require('path');
+
+const getRecordingFilePath = () => {
+  const soundsJsonPath = soundboardDomain.getUserPreferences().pathToSoundsJson;
+  const targetDir = path.dirname(soundsJsonPath);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return path.join(targetDir, `recording-${timestamp}.webm`);
+};
+
+type RecordingConfig = {
+  mimeType: string;
+  inputDeviceId?: string;
+};
+
+const defaultRecordingConfig: RecordingConfig = {
+  mimeType: 'audio/webm',
+};
 
 const SoundsView = ({
   stopAllSounds,
@@ -38,9 +62,25 @@ const SoundsView = ({
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
     soundboardDomain.getUserPreferences().bindings
   );
+  const [requireModifierForHotkeys, setRequireModifierForHotkeys] = useState(
+    soundboardDomain.getUserPreferences().requireModifierForHotkeys
+  );
   const [playingProgress, setPlayingProgress] = useState<
     Record<string, number>
   >({});
+  const [isRecording, setIsRecording] = useState(false);
+
+  const recordingConfigRef = useRef(defaultRecordingConfig);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const bindingsBySoundId = useMemo(
+    () =>
+      bindings.reduce(
+        (acc, binding) => ({ ...acc, [binding.sound.id]: binding }),
+        {} as Record<string, HotkeyBinding>
+      ),
+    [bindings]
+  );
 
   const reloadSounds = () => {
     soundboardDomain
@@ -65,26 +105,21 @@ const SoundsView = ({
     }
   };
 
-  const editBindingKey = (binding: HotkeyBinding) => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (event.key === 'Escape') {
-        window.removeEventListener('keydown', onKeyDown, true);
-        return;
-      }
-
-      const nextKey = getHotkeyFromEvent(event);
-      if (!nextKey || nextKey === binding.key) {
-        return;
-      }
-
-      soundboardDomain.updateBindingKey(binding.key, nextKey);
-      toast.success(`Updated hotkey to ${toHotkeyDisplay(nextKey)}`);
-      window.removeEventListener('keydown', onKeyDown, true);
-    };
-    window.addEventListener('keydown', onKeyDown, true);
+  const editBindingKey = (
+    binding: HotkeyBinding,
+    captureElement: HTMLElement
+  ) => {
+    beginHotkeyCapture({
+      captureElement,
+      requireModifier: requireModifierForHotkeys,
+      onResolve: (nextKey) => {
+        if (nextKey === binding.key) {
+          return;
+        }
+        soundboardDomain.updateBindingKey(binding.key, nextKey);
+        toast.success(`Updated hotkey to ${toHotkeyDisplay(nextKey)}`);
+      },
+    });
   };
 
   const removeBinding = (binding: HotkeyBinding) => {
@@ -97,11 +132,68 @@ const SoundsView = ({
     soundboardDomain.setBindingVolume(binding.key, volume);
   };
 
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const startRecording = async () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    try {
+      const { mimeType, inputDeviceId } = recordingConfigRef.current;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: inputDeviceId
+          ? { deviceId: { exact: inputDeviceId } }
+          : true,
+      });
+      recordingStreamRef.current = stream;
+
+      const recordedChunks: BlobPart[] = [];
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      });
+
+      recorder.addEventListener('stop', async () => {
+        setIsRecording(false);
+        stream.getTracks().forEach((track) => track.stop());
+        recordingStreamRef.current = null;
+
+        const recordedBlob = new Blob(recordedChunks, { type: mimeType });
+        const buffer = Buffer.from(await recordedBlob.arrayBuffer());
+        const recordingPath = getRecordingFilePath();
+        fs.writeFileSync(recordingPath, buffer);
+        soundboardDomain.addSound(recordingPath);
+        reloadSounds();
+        toast.success('Recording added to local sounds');
+      });
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (e) {
+      console.error(e);
+      toast.error('Unable to start recording');
+      setIsRecording(false);
+    }
+  };
+
   useEffect(() => reloadSounds(), [filters]);
   useEffect(() => {
     const unregister = soundboardDomain.watchUserPreferences(
       (updatedPreferences: UserPreferences) => {
         setBindings(updatedPreferences.bindings);
+        setRequireModifierForHotkeys(
+          updatedPreferences.requireModifierForHotkeys
+        );
       }
     );
     return () => unregister();
@@ -144,6 +236,27 @@ const SoundsView = ({
     return () => unregisterPlayback();
   }, []);
 
+  useEffect(() => {
+    const onEscStopRecording = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isRecording) {
+        stopRecording();
+      }
+    };
+
+    window.addEventListener('keydown', onEscStopRecording, true);
+    return () => window.removeEventListener('keydown', onEscStopRecording, true);
+  }, [isRecording]);
+
+  useEffect(
+    () => () => {
+      cancelActiveHotkeyCapture();
+      if (recordingStreamRef.current) {
+        recordingStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    },
+    []
+  );
+
   const getSourceIcon = (binding: HotkeyBinding) =>
     binding.sound.source === Source.LOCAL ? (
       <FaHdd className="bound-hotkey-source-icon" title="Local" />
@@ -154,9 +267,20 @@ const SoundsView = ({
   return (
     <div className="sounds-view animated fadeInRight">
       <div className="actions">
-        <FilterComponent sendFiltersToParent={onFilterUpdated} />
+        <FilterComponent
+          sendFiltersToParent={onFilterUpdated}
+          onSearchFocus={cancelActiveHotkeyCapture}
+        />
         <button className="button-stop-all" onClick={stopAll} type="button">
           <FaStop className="icon-stop-all" />
+        </button>
+        <button
+          className={`button-record ${isRecording ? 'active' : ''}`}
+          onClick={startRecording}
+          type="button"
+          title={isRecording ? 'Stop recording' : 'Record audio'}
+        >
+          {isRecording ? <FaCircle className="icon-recording" /> : <FaMicrophone />}
         </button>
       </div>
 
@@ -189,7 +313,9 @@ const SoundsView = ({
                   <button
                     type="button"
                     className="bound-hotkey-label"
-                    onClick={() => editBindingKey(binding)}
+                    onClick={(event) =>
+                      editBindingKey(binding, event.currentTarget as HTMLElement)
+                    }
                   >
                     {toHotkeyDisplay(binding.key)}
                   </button>
@@ -226,10 +352,12 @@ const SoundsView = ({
         )}
         {sounds.map((sound) => (
           <SoundComponent
-            key={sound.name}
+            key={sound.path}
             sound={sound}
             registerSound={registerSound}
             reloadSounds={reloadSounds}
+            requireModifierForHotkeys={requireModifierForHotkeys}
+            existingBindingHotkey={bindingsBySoundId[sound.path]?.key}
           />
         ))}
       </div>

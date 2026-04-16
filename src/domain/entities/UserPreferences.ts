@@ -18,12 +18,15 @@ export class HotkeySound {
 
   volume: number;
 
+  outputDeviceId?: string;
+
   constructor(
     id: string,
     name: string,
     url: string,
     source?: Source,
-    volume = 1
+    volume = 1,
+    outputDeviceId?: string
   ) {
     this.id = id;
     this.name = name;
@@ -36,6 +39,7 @@ export class HotkeySound {
       this.source = Source.LOCAL;
     }
     this.volume = Math.max(0, Math.min(1, volume));
+    this.outputDeviceId = outputDeviceId;
   }
 }
 
@@ -55,7 +59,14 @@ export const normalizeHotkeySounds = (
     if (sound?.id && sound?.name && sound?.url) {
       return {
         ...acc,
-        [action]: new HotkeySound(sound.id, sound.name, sound.url),
+        [action]: new HotkeySound(
+          sound.id,
+          sound.name,
+          sound.url,
+          sound.source,
+          sound.volume,
+          sound.outputDeviceId
+        ),
       };
     }
     return acc;
@@ -76,7 +87,8 @@ const normalizeBindingsFromList = (bindings?: HotkeyBinding[] | null) =>
           binding.sound.name,
           binding.sound.url,
           binding.sound.source,
-          binding.sound.volume
+          binding.sound.volume,
+          binding.sound.outputDeviceId
         ),
       };
       const withoutExistingKey = acc.filter(
@@ -130,13 +142,16 @@ export class UserPreferences {
 
   bindings: HotkeyBinding[];
 
+  requireModifierForHotkeys: boolean;
+
   constructor(
     audioOutput: AudioOutput,
     pathToSoundsJson: string,
     hotkeys: Partial<HotkeyMap> = {},
     bindings: HotkeyBinding[] = [],
     legacyHotkeySounds?: HotkeySoundMap,
-    legacyHotkeys?: LegacyHotkeyMap
+    legacyHotkeys?: LegacyHotkeyMap,
+    requireModifierForHotkeys = true
   ) {
     this.audioOutput = audioOutput;
     this.pathToSoundsJson = pathToSoundsJson;
@@ -146,6 +161,7 @@ export class UserPreferences {
       legacyHotkeySounds,
       legacyHotkeys
     );
+    this.requireModifierForHotkeys = requireModifierForHotkeys;
   }
 
   setAudioOutput(audioOutput: AudioOutput): UserPreferences {
@@ -153,7 +169,10 @@ export class UserPreferences {
       audioOutput,
       this.pathToSoundsJson,
       this.hotkeys,
-      this.bindings
+      this.bindings,
+      undefined,
+      undefined,
+      this.requireModifierForHotkeys
     );
   }
 
@@ -162,7 +181,10 @@ export class UserPreferences {
       this.audioOutput,
       pathToSoundsJson,
       this.hotkeys,
-      this.bindings
+      this.bindings,
+      undefined,
+      undefined,
+      this.requireModifierForHotkeys
     );
   }
 
@@ -171,7 +193,10 @@ export class UserPreferences {
       this.audioOutput,
       this.pathToSoundsJson,
       hotkeys,
-      this.bindings
+      this.bindings,
+      undefined,
+      undefined,
+      this.requireModifierForHotkeys
     );
   }
 
@@ -180,7 +205,22 @@ export class UserPreferences {
       this.audioOutput,
       this.pathToSoundsJson,
       this.hotkeys,
-      bindings
+      bindings,
+      undefined,
+      undefined,
+      this.requireModifierForHotkeys
+    );
+  }
+
+  setRequireModifierForHotkeys(required: boolean): UserPreferences {
+    return new UserPreferences(
+      this.audioOutput,
+      this.pathToSoundsJson,
+      this.hotkeys,
+      this.bindings,
+      undefined,
+      undefined,
+      required
     );
   }
 
@@ -237,7 +277,27 @@ export class UserPreferences {
         binding.sound.name,
         binding.sound.url,
         binding.sound.source,
-        volume
+        volume,
+        binding.sound.outputDeviceId
+      )
+    );
+  }
+
+  setBindingOutputDevice(key: string, outputDeviceId?: string): UserPreferences {
+    const binding = this.bindings.find((entry) => entry.key === key);
+    if (!binding) {
+      return this;
+    }
+
+    return this.upsertBinding(
+      key,
+      new HotkeySound(
+        binding.sound.id,
+        binding.sound.name,
+        binding.sound.url,
+        binding.sound.source,
+        binding.sound.volume,
+        outputDeviceId
       )
     );
   }
