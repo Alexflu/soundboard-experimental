@@ -27,6 +27,7 @@ export default function App() {
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
     soundboardDomain.getUserPreferences().bindings
   );
+  const [isHotkeyCaptureActive, setIsHotkeyCaptureActive] = useState(false);
   const filtersRef = useRef(filters);
 
   const registerSound = (stopSound: () => void) =>
@@ -79,7 +80,7 @@ export default function App() {
       }
 
       globalShortcut?.register(accelerator, () => {
-        if (isTypingInField()) {
+        if (isTypingInField() || isHotkeyCaptureActive) {
           return;
         }
 
@@ -137,7 +138,7 @@ export default function App() {
         globalShortcut?.unregister(accelerator);
       });
     };
-  }, [hotkeys, bindings, stopAllSounds]);
+  }, [hotkeys, bindings, stopAllSounds, isHotkeyCaptureActive]);
 
   return (
     <Router>
@@ -166,6 +167,7 @@ export default function App() {
                 stopAllSounds={stopAllSounds}
                 registerSound={registerSound}
                 setGlobalFilters={setFilters}
+                onHotkeyCaptureStateChange={setIsHotkeyCaptureActive}
               />
             </Route>
           </Switch>
