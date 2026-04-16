@@ -15,7 +15,6 @@ import {
   HotkeyMap,
 } from './domain/entities/HotkeyPreferences';
 import { HotkeyBinding } from './domain/entities/UserPreferences';
-import { isHotkeyCaptureActive } from './application/component/hotkeyCapture';
 
 const globalShortcut = require('electron').remote?.globalShortcut;
 
@@ -80,7 +79,7 @@ export default function App() {
       }
 
       globalShortcut?.register(accelerator, () => {
-        if (isTypingInField() || isHotkeyCaptureActive()) {
+        if (isTypingInField()) {
           return;
         }
 
