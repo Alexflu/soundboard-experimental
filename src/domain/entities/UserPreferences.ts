@@ -5,6 +5,7 @@ import {
   HotkeyMap,
   normalizeHotkeys,
 } from './HotkeyPreferences';
+import Source from './Source';
 
 export class HotkeySound {
   id: string;
@@ -13,10 +14,28 @@ export class HotkeySound {
 
   url: string;
 
-  constructor(id: string, name: string, url: string) {
+  source: Source;
+
+  volume: number;
+
+  constructor(
+    id: string,
+    name: string,
+    url: string,
+    source?: Source,
+    volume = 1
+  ) {
     this.id = id;
     this.name = name;
     this.url = url;
+    if (source) {
+      this.source = source;
+    } else if (/^https?:\/\//.test(url)) {
+      this.source = Source.MYINSTANT;
+    } else {
+      this.source = Source.LOCAL;
+    }
+    this.volume = Math.max(0, Math.min(1, volume));
   }
 }
 
@@ -26,7 +45,7 @@ export type HotkeyBinding = {
 };
 
 export type HotkeySoundMap = Partial<
-  Record<(typeof LEGACY_SEARCH_SLOT_ACTIONS)[number], HotkeySound>
+  Record<typeof LEGACY_SEARCH_SLOT_ACTIONS[number], HotkeySound>
 >;
 
 export const normalizeHotkeySounds = (
@@ -55,13 +74,19 @@ const normalizeBindingsFromList = (bindings?: HotkeyBinding[] | null) =>
         sound: new HotkeySound(
           binding.sound.id,
           binding.sound.name,
-          binding.sound.url
+          binding.sound.url,
+          binding.sound.source,
+          binding.sound.volume
         ),
       };
       const withoutExistingKey = acc.filter(
         (existingBinding) => existingBinding.key !== normalizedBinding.key
       );
-      return withoutExistingKey.concat(normalizedBinding);
+      const withoutExistingSound = withoutExistingKey.filter(
+        (existingBinding) =>
+          existingBinding.sound.id !== normalizedBinding.sound.id
+      );
+      return withoutExistingSound.concat(normalizedBinding);
     }
     return acc;
   }, [] as HotkeyBinding[]);
@@ -116,7 +141,11 @@ export class UserPreferences {
     this.audioOutput = audioOutput;
     this.pathToSoundsJson = pathToSoundsJson;
     this.hotkeys = normalizeHotkeys(hotkeys);
-    this.bindings = normalizeBindings(bindings, legacyHotkeySounds, legacyHotkeys);
+    this.bindings = normalizeBindings(
+      bindings,
+      legacyHotkeySounds,
+      legacyHotkeys
+    );
   }
 
   setAudioOutput(audioOutput: AudioOutput): UserPreferences {
@@ -159,11 +188,16 @@ export class UserPreferences {
     const withoutCurrentKey = this.bindings.filter(
       (binding) => binding.key !== key
     );
-    return this.setBindings(withoutCurrentKey.concat({ key, sound }));
+    const withoutCurrentSound = withoutCurrentKey.filter(
+      (binding) => binding.sound.id !== sound.id
+    );
+    return this.setBindings(withoutCurrentSound.concat({ key, sound }));
   }
 
   removeBinding(key: string): UserPreferences {
-    return this.setBindings(this.bindings.filter((binding) => binding.key !== key));
+    return this.setBindings(
+      this.bindings.filter((binding) => binding.key !== key)
+    );
   }
 
   updateBindingKey(previousKey: string, nextKey: string): UserPreferences {
@@ -187,6 +221,24 @@ export class UserPreferences {
         key: nextKey,
         sound: bindingToUpdate.sound,
       })
+    );
+  }
+
+  setBindingVolume(key: string, volume: number): UserPreferences {
+    const binding = this.bindings.find((entry) => entry.key === key);
+    if (!binding) {
+      return this;
+    }
+
+    return this.upsertBinding(
+      key,
+      new HotkeySound(
+        binding.sound.id,
+        binding.sound.name,
+        binding.sound.url,
+        binding.sound.source,
+        volume
+      )
     );
   }
 }

@@ -6,7 +6,7 @@
   margin-top: 5px;
 }
 
-.sounds-view .actions{
+.sounds-view .actions {
   display: flex;
   align-items: center;
   margin-top: 14px;
@@ -45,19 +45,99 @@
 .sounds-view .bound-hotkey-row {
   display: flex;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .sounds-view .bound-hotkey-play {
   margin-right: 8px;
+  color: #008000;
+  border: none;
+  background: none;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.sounds-view .bound-hotkey-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+  border: 1px solid #3b3b3b;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #262626;
+}
+
+.sounds-view .bound-hotkey-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  transform-origin: left;
+  background: rgba(0, 128, 0, 0.2);
+  pointer-events: none;
+}
+
+.sounds-view .bound-hotkey-sound-name {
+  position: relative;
+  z-index: 1;
 }
 
 .sounds-view .bound-hotkey-label {
+  position: relative;
+  z-index: 1;
   margin-left: auto;
+  margin-right: 8px;
   color: #ccc;
+  cursor: pointer;
+  border: none;
+  background: none;
+  text-decoration: underline;
 }
 
+.sounds-view .bound-hotkey-source-control {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
 
-.sounds-view .bound-hotkey-button {
+.sounds-view .bound-hotkey-source-icon {
+  position: absolute;
+  inset: 0;
+  font-size: 22px;
+}
+
+.sounds-view .bound-hotkey-remove {
+  position: absolute;
+  inset: 0;
+  display: none;
+  border: none;
+  background: none;
+  color: #c60000;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.sounds-view .bound-hotkey-source-control:hover .bound-hotkey-remove {
+  display: block;
+}
+
+.sounds-view .bound-hotkey-source-control:hover .bound-hotkey-source-icon {
+  display: none;
+}
+
+.sounds-view .bound-hotkey-volume {
   margin-left: 8px;
+  width: 90px;
+}
+
+.sounds-view .bound-hotkeys-helper {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #afafaf;
 }

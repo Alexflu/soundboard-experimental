@@ -6,6 +6,8 @@ import Player from '../../domain/entities/Player';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import Source from '../../domain/entities/Source';
 import RemoveSound from './RemoveSound';
+import { getHotkeyFromEvent } from './hotkeyCapture';
+import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
 
 const SoundComponent = ({
   sound,
@@ -20,7 +22,7 @@ const SoundComponent = ({
     new Player(sound, soundboardDomain.getUserPreferences().audioOutput.id)
   );
   const [isPlaying, setIsPlaying] = useState(false);
-  const [bindingKey, setBindingKey] = useState('Control+F2');
+  const [isCapturingHotkey, setIsCapturingHotkey] = useState(false);
 
   const stop = () => {
     player.stop();
@@ -34,14 +36,38 @@ const SoundComponent = ({
     player.player?.addEventListener('ended', () => setIsPlaying(false));
   };
 
-  const bindToHotkey = () => {
-    if (!bindingKey) {
-      toast.error('Please enter a hotkey');
+  const bindToHotkey = (bindingKey: string) => {
+    soundboardDomain.bindSoundToHotkey(bindingKey, sound);
+    toast.success(`Bound ${sound.name} to ${toHotkeyDisplay(bindingKey)}`);
+  };
+
+  const startCapture = () => {
+    if (isCapturingHotkey) {
       return;
     }
+    setIsCapturingHotkey(true);
 
-    soundboardDomain.bindSoundToHotkey(bindingKey, sound);
-    toast.success(`Bound ${sound.name} to ${bindingKey}`);
+    const onKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.key === 'Escape') {
+        setIsCapturingHotkey(false);
+        window.removeEventListener('keydown', onKeyDown, true);
+        return;
+      }
+
+      const hotkey = getHotkeyFromEvent(event);
+      if (!hotkey) {
+        return;
+      }
+
+      bindToHotkey(hotkey);
+      setIsCapturingHotkey(false);
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+
+    window.addEventListener('keydown', onKeyDown, true);
   };
 
   return (
@@ -66,18 +92,12 @@ const SoundComponent = ({
         </div>
       ) : (
         <div className="row-end">
-          <input
-            className="bind-hotkey-select"
-            value={bindingKey}
-            onChange={(event) => setBindingKey(event.target.value)}
-            placeholder="Control+F2"
-          />
           <button
             className="bind-hotkey-button"
             type="button"
-            onClick={bindToHotkey}
+            onClick={startCapture}
           >
-            Bind to hotkey
+            {isCapturingHotkey ? 'Press keys (Esc to cancel)' : 'Bind hotkey'}
           </button>
           <FaGlobeAmericas className="source-icon" title={sound.source} />
         </div>
