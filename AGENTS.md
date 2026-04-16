@@ -13,14 +13,14 @@ Prioritize minimal, clean, data-driven changes.
 - Avoid nested conditionals
 - Prefer mappings / data-driven logic
 - Reuse existing playback logic
-- Do NOT introduce preset sounds
+- Do NOT introduce hardcoded preset sounds
 
 ---
 
 ## Existing Hotkeys (Default Behavior)
 
 - Ctrl+F1 → play random sound from local storage
-- Ctrl+F2–F8 → play sounds from search list
+- Ctrl+F2–F8 → default bindings (may be overridden by user-defined bindings)
 
 These MUST remain defaults.
 
@@ -30,6 +30,9 @@ These MUST remain defaults.
 
 - Allow hotkeys to be customizable
 - Store hotkeys in config (not hardcoded)
+- Support dynamic user-defined hotkey bindings (not limited to fixed slots)
+- Bind sounds from both local and MyInstant sources
+- Ensure one-to-one mapping between hotkeys and sounds
 - Separate:
   - keybinding logic
   - playback logic
@@ -42,7 +45,7 @@ These MUST remain defaults.
 - Identify where:
   - hotkeys are handled
   - random sound is triggered
-  - search list playback happens
+  - sound playback happens (local + MyInstant)
   - config/settings exist (or create one)
 
 ---
@@ -53,6 +56,32 @@ These MUST remain defaults.
 - Do not trigger hotkeys while typing in inputs
 - Do not rename core functions unless necessary
 - Do not refactor unrelated code
+
+### Binding Rules
+
+- Each hotkey can only trigger one sound
+- Each sound can only be bound once
+- Rebinding should overwrite previous bindings cleanly
+- No duplicate key bindings
+- No duplicate sound bindings
+
+### Playback Rules
+
+- Multiple sounds may play simultaneously
+- Provide a global stop-all control
+- Provide a hotkey for stop-all (default Ctrl+Shift+S)
+- Playback indicators should be subtle and inline (avoid intrusive popups)
+
+---
+
+## UI Expectations
+
+- Display bound sounds with:
+  - name
+  - hotkey (short form, e.g., Ctrl+F2)
+  - source indicator (local or MyInstant)
+- Allow hotkey editing via key capture (not text input)
+- Keep UI minimal and consistent with existing styles
 
 ---
 
@@ -65,7 +94,6 @@ Before editing:
 After editing:
 - List changed files
 - Explain how defaults are preserved
-- Give exact steps to test
 
 ---
 
@@ -90,3 +118,14 @@ Always:
 Never:
 - Add unnecessary complexity
 - Replace working systems without reason
+
+---
+
+## Current Direction
+
+The project now supports:
+- Persistent hotkey bindings
+- Binding sounds from search results (MyInstant)
+- Live reloading of preferences
+
+Future changes should build on this system, not replace it.
