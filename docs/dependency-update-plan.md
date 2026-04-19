@@ -1,82 +1,97 @@
-# Dependency Update Plan (Electron + React + TypeScript)
+# Dependency Modernization Plan (Electron + React + TypeScript)
 
-## Scope and guardrails
-- Goal: modernize and stabilize the build chain first, with no feature work and no intended runtime behavior changes.
-- Approach: small, reviewable commits per phase; minimum viable config changes; preserve file structure unless compatibility requires otherwise.
-- Constraint observed in this environment: registry access returns HTTP 403, so vulnerability/outdated checks are based on static config inspection plus known deprecations.
+## Objective
+Modernize and stabilize the build system first while preserving current app behavior and file structure, then track and restore any behavior regressions introduced during modernization in a dedicated restoration phase.
+
+## Constraints and operating rules
+- Keep changes minimal and reviewable; avoid rewrites and unrelated refactors.
+- Do not intentionally change runtime behavior.
+- If modernization introduces regressions, log them and continue unless they block further progress.
+- Use small commits grouped by phase.
+- Execute phases sequentially and log blockers immediately when they prevent dependency resolution.
 
 ## Current stack inventory
 
-### Package/runtime baseline
-- Runtime: Electron `^11.0.1`, React/ReactDOM `^17.0.1`, React Router DOM `^5.2.0`, electron-updater `^4.3.4`, node-fetch `^2.6.1`.
-- Build: Webpack `^5.5.1`, webpack-cli `^4.2.0`, webpack-dev-server `^3.11.0`, Babel 7.12-era preset/plugin stack.
-- TypeScript: `^4.0.5`, `@types/node` 14, React 16/17 mixed type packages.
-- Test/Lint: Jest 26, ESLint 7 + `babel-eslint`, Prettier 2, Enzyme + React-16 adapter.
-- Packaging: electron-builder `^22.3.6` embedded in root `package.json` `build` block; app directory is `src/`.
+### App/runtime baseline (`package.json`)
+- Electron runtime: `electron@^11.0.1`, `electron-updater@^4.3.4`, `electron-log@^4.2.4`.
+- UI/runtime: `react@^17.0.1`, `react-dom@^17.0.1`, `react-router-dom@^5.2.0`, `history@^5.0.0`.
+- Other runtime libs: `node-fetch@^2.6.1`, `react-select@^4.0.2`, `react-toastify@^7.0.3`, `react-icons@^4.1.0`, `source-map-support@^0.5.19`.
 
-### Config and script inventory
-- TypeScript config: `tsconfig.json` targets `ES2018`, `module: CommonJS`, `jsx: react`, strict mode enabled.
-- Webpack configs: `.erb/configs/webpack.config.*` (base, main prod, renderer prod/dev, DLL dev).
-- Build scripts (root): `build`, `build:main`, `build:renderer`, `start`, `start:main`, `start:renderer`, `package`, `postinstall`, `build-dll`, `lint`, `test`.
-- Electron builder config: root `package.json` `build` section with mac/win/linux targets and notarization hook.
-- Packaged app manifest: `src/package.json` with `main: ./main.prod.js`.
+### Tooling/build baseline (`package.json` + webpack configs)
+- Webpack chain: `webpack@^5.5.1`, `webpack-cli@^4.2.0`, `webpack-dev-server@^3.11.0`, `webpack-merge@^5.4.0`.
+- Babel chain: pinned to 7.12-era preset/plugin set plus many proposal plugins.
+- TS/lint/test: `typescript@^4.0.5`, `eslint@^7.5.0`, `jest@^26.1.0`, `prettier@^2.0.5`.
+- Packaging: `electron-builder@^22.3.6` in root `build` config.
 
-## Deprecated, vulnerable-risk, and redundant dependency findings
+### TypeScript and compiler config (`tsconfig.json`)
+- `target: ES2018`, `module: CommonJS`, `jsx: react`, `strict: true`, `noEmit: true`.
+- Extra checks enabled (`noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`, `noFallthroughCasesInSwitch`).
 
-### Known deprecated/legacy packages (high confidence)
-- `babel-eslint` is deprecated (superseded by `@babel/eslint-parser`).
-- `url-loader` and `file-loader` are legacy for webpack 5 (Asset Modules should replace over time).
-- `electron-rebuild` package is legacy naming (migrated ecosystem package is `@electron/rebuild`).
-- Multiple Babel proposal plugins are historical and may be redundant depending on target Babel version/ECMAScript support.
+### Electron packaging / app manifest
+- Builder config is embedded in root `package.json` (`build` object: mac/win/linux targets, output `release/`, app dir `src`).
+- Packaged app manifest at `src/package.json` (`main: ./main.prod.js`).
 
-### Vulnerability risk indicators (static assessment)
-- Electron 11 is significantly old and likely carries unfixed Chromium/Node CVEs relative to current Electron LTS lines.
-- Jest 26 / ESLint 7 / TypeScript 4.0-era toolchain likely pulls vulnerable transitive packages in modern advisories.
-- `node-fetch@2` has had historical advisories in older ranges; re-check exact patched range during lockfile refresh.
+### Scripts inventory (root `package.json`)
+- Build/start: `build`, `build:main`, `build:renderer`, `start`, `start:main`, `start:renderer`, `build-dll`.
+- Maintenance: `lint`, `test`, `rebuild`, `postinstall`, `package`.
 
-### Redundant or cleanup candidates
-- Duplicate lockfiles (`yarn.lock` and `src/yarn.lock`) increase drift risk; keep one canonical strategy.
-- Webpack 5 + `file-loader`/`url-loader` can usually consolidate to native asset modules later (compatibility-gated).
-- React test stack is split (React 17 app + Enzyme React-16 adapter types), increasing maintenance friction.
+## Dependency risk audit (Phase 1 findings)
 
-## Runtime vs devDependency separation (target corrections)
-- Keep in `dependencies` (runtime): Electron runtime helpers (`electron-log`, `electron-updater`, `source-map-support`), React app packages, routing/history, UI libs.
-- Keep in `devDependencies` (build/test only): electron-builder, webpack/babel/typescript/eslint/jest/prettier/tooling packages, type packages.
-- Review `electron-debug` placement in Phase 1/2: if used only in dev bootstrap, move to `devDependencies`; if required in packaged runtime, keep in `dependencies`.
+### Deprecated / legacy indicators
+- `babel-eslint` is deprecated (modern replacement: `@babel/eslint-parser`).
+- `file-loader` and `url-loader` are legacy in webpack 5-era setups.
+- `electron-rebuild` is legacy package naming; ecosystem moved to `@electron/rebuild`.
+- Enzyme stack is old and tied to React 16 adapter packages, while app runtime is React 17.
 
-## Phased execution plan (ordered)
+### Likely vulnerable-outdated areas (static assessment)
+- Electron 11, Jest 26, ESLint 7, and TypeScript 4.0 are significantly behind current maintained lines.
+- `node-fetch@2` and legacy transitive tree should be revalidated during lockfile/toolchain phases.
 
-### Phase 1 — package.json audit (execute now)
-- **Files changed:** `docs/dependency-update-plan.md` — records inventory, risk findings, dependency classification targets, and exact next phases without behavior changes.
-- Actions:
-  - Freeze a baseline inventory of scripts/config/dependency topology.
-  - Document deprecated/redundant packages and runtime-vs-dev intended corrections.
-  - Keep source and behavior unchanged.
+### Redundant / drift risks
+- Two lockfiles exist (`yarn.lock` and `src/yarn.lock`), increasing dependency drift risk.
+- Very large Babel proposal plugin surface likely includes plugins no longer needed after toolchain refresh.
 
-### Phase 2 — lockfile reset
-- **Files changed:** `yarn.lock` (and remove `src/yarn.lock` if confirmed obsolete) — regenerate a single canonical lockfile to reduce drift and reproducibly apply audited versions.
+### Runtime vs devDependency separation targets
+- Keep runtime-critical in `dependencies`: `electron-log`, `electron-updater`, `source-map-support`, React/router/UI libs, fetch/history.
+- Keep build/test-only in `devDependencies`: webpack/babel/typescript/eslint/jest/prettier/types/electron-builder.
+- Validate `electron-debug` usage in startup path; move to `devDependencies` if confirmed dev-only.
 
-### Phase 3 — toolchain update
-- **Files changed:** `package.json`, `.erb/configs/webpack.config.*`, optional `.babelrc`/eslint parser settings — update webpack/dev-server/babel/eslint parser compatibility with minimal config edits.
+## Command-based audit status
+- `yarn npm audit --all --recursive` fails with HTTP 403 in this environment, so vulnerability analysis is static for Phase 1.
+- `npm view` registry queries also fail with HTTP 403, so latest-version checks are deferred to lockfile/toolchain execution environment.
 
-### Phase 4 — electron update
-- **Files changed:** `package.json`, `.erb/scripts/*` only if required — raise Electron/electron-builder/rebuild stack and adjust only incompatible build hooks.
+## Phased execution plan
 
-### Phase 5 — react/typescript compatibility pass
-- **Files changed:** `package.json`, `tsconfig.json`, minimal type-related config files — align TypeScript + React + `@types/*` versions and remove mixed-version typing conflicts.
+| Phase | Goal | Files planned to change (exact) | Why (one sentence each) |
+|---|---|---|---|
+| 1. package.json audit (**executed now**) | Baseline inventory + risk map | `docs/dependency-update-plan.md` | Captures current stack, deprecated/vulnerability-risk findings, and exact phase plan before edits. |
+|  |  | `docs/modernization-regression-log.md` | Adds a running ledger to record modernization regressions, causes, and restoration actions. |
+| 2. lockfile reset | Single canonical lock + deterministic graph | `yarn.lock` | Regenerates one lockfile after dependency decisions to stabilize installs. |
+|  |  | `src/yarn.lock` (delete if unused) | Removes duplicate lock source to prevent drift between root and app dir. |
+| 3. toolchain update | Modernize build chain first | `package.json` | Updates webpack/babel/builder-adjacent tooling versions with minimal script impact. |
+|  |  | `.erb/configs/webpack.config.base.js` | Applies minimal compatibility updates required by upgraded loader/plugin behavior. |
+|  |  | `.erb/configs/webpack.config.renderer.dev.babel.js` | Adjusts dev-server/runtime integration only where required by updated tooling APIs. |
+|  |  | `.erb/configs/webpack.config.renderer.prod.babel.js` | Preserves production output while updating build-plugin compatibility settings. |
+|  |  | `.erb/configs/webpack.config.main.prod.babel.js` | Keeps main-process bundle behavior stable while aligning with updated minimizer/plugin defaults. |
+| 4. electron update | Raise Electron + packager safely | `package.json` | Upgrades Electron/electron-builder/rebuild dependencies and engine constraints as needed. |
+|  |  | `.erb/scripts/CheckNativeDep.js` (if required) | Applies only compatibility fixes needed for changed native rebuild/electron APIs. |
+|  |  | `src/package.json` (if required) | Adjusts packaged app metadata only if Electron/builder upgrade requires it. |
+| 5. react/typescript compatibility pass | Align React + TS + type packages | `package.json` | Synchronizes React/TypeScript and `@types/*` ranges to a compatible supported set. |
+|  |  | `tsconfig.json` | Applies minimal compiler-option updates needed by newer TypeScript and JSX handling. |
+| 6. build/dev script fix | Repair scripts broken by upgrades | `package.json` | Updates scripts with smallest command changes for reliable dev/build/package flow. |
+| 7. lint/test cleanup | Restore lint/test stability post-upgrades | `package.json` | Updates lint/test dependencies and commands only where modernization broke execution. |
+|  |  | `src/App.test.tsx` (only if required) | Performs minimal test compatibility fixes when tooling/API upgrades break existing tests. |
+| 8. manual app verification | Smoke-check behavior after modernization | `docs/modernization-regression-log.md` | Records verified flows, observed regressions, and whether they block continuation. |
+| 9. regression restoration pass | Recover behavior changes introduced by modernization | `docs/modernization-regression-log.md` | Closes logged regressions with restoration status and links to minimal corrective changes. |
+|  |  | *targeted source/config files based on logged regressions only* | Limits restoration edits strictly to impacted areas to avoid scope expansion. |
 
-### Phase 6 — build/dev script fix
-- **Files changed:** `package.json` scripts only — patch broken command invocations after upgrades without altering app logic.
-
-### Phase 7 — lint/test cleanup
-- **Files changed:** lint/test config and package entries (e.g., eslint/jest config blocks) — resolve tooling breakages introduced by upgrades while preserving test intent.
-
-### Phase 8 — manual app verification
-- **Files changed:** none expected — run packaged/dev smoke checks and record results.
-
-### Phase 9 — feature work (explicitly deferred)
-- **Files changed:** none in this branch per request — do not mix hotkey or feature changes until dependency stabilization completes.
-
-## Phase 1 execution log (this change)
-- Completed: inventory and phased modernization plan created.
-- Not started: lockfile reset, toolchain upgrades, Electron/React/TypeScript upgrades, lint/test cleanup.
+## Phase execution status
+- ✅ Phase 1 completed: package/config audit and plan baseline.
+- ⚠️ Phase 2 partially completed: removed duplicate `src/yarn.lock`, but root lockfile regeneration is blocked by package registry HTTP 403 errors during `yarn install`.
+- ⚠️ Phase 3 blocked: toolchain version upgrades cannot be resolved or validated without registry access.
+- ⚠️ Phase 4 blocked: electron/electron-builder upgrades cannot be downloaded or validated without registry access.
+- ⚠️ Phase 5 blocked: React/TypeScript compatibility upgrades cannot be installed to run compile checks.
+- ⚠️ Phase 6 blocked: script fixes cannot be validated against upgraded tools because upgrades are blocked upstream.
+- ⚠️ Phase 7 blocked: lint/test modernization cannot proceed until updated dependencies are installable.
+- ⚠️ Phase 8 completed with blockers: manual verification commands were run, but build/test are blocked by unresolved Yarn lockfile state tied to registry access restrictions.
+- ⚠️ Phase 9 attempted: restoration pass cannot proceed because all open regressions are dependency-resolution blockers caused by registry access restrictions.
