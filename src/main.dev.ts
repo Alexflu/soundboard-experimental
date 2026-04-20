@@ -8,13 +8,21 @@
  * When running `yarn build` or `yarn build-main`, this file is compiled to
  * `./src/main.prod.js` using webpack. This gives us some performance wins.
  */
-import 'core-js/stable';
-import 'regenerator-runtime/runtime';
+import 'core-js/stable/index.js';
+import 'regenerator-runtime/runtime.js';
 import path from 'path';
 import { app, BrowserWindow, Menu, nativeImage, shell, Tray } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import pkg from 'electron-updater';
+  const { autoUpdater } = pkg;
 import log from 'electron-log';
-import MenuBuilder from './menu';
+import MenuBuilder from './menu.ts';
+import { createRequire } from 'module';
+  const require = createRequire(import.meta.url);
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
 
 export default class AppUpdater {
   constructor() {
