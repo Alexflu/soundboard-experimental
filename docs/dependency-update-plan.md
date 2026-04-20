@@ -80,3 +80,29 @@
 ## Phase 1 execution log (this change)
 - Completed: inventory and phased modernization plan created.
 - Not started: lockfile reset, toolchain upgrades, Electron/React/TypeScript upgrades, lint/test cleanup.
+
+## Phase 2 execution log (current change)
+- Completed: selected a single lockfile strategy by removing `src/yarn.lock` and pinning the intended package manager to Yarn Classic via root `package.json`.
+- Completed: removed accidental Yarn Berry artifacts (`.yarn/`, `src/.yarn/`, `.yarnrc.yml`) to prevent mixed-package-manager drift.
+- Blocked in this environment: lockfile regeneration and audit commands that require registry access return proxy/HTTP 403, so lock refresh must run in a network-permitted CI/dev environment.
+
+## Phase 3 execution log (toolchain update)
+- Completed: stabilized packaging script behavior across OSes by replacing Windows-specific `yarn.cmd`/`if exist` command usage with `rimraf` + `yarn build`.
+- Deferred: package version upgrades for webpack/babel/eslint remain pending until lockfile regeneration can run in a network-permitted environment.
+
+## Phase 4 execution log (electron update)
+- Completed: moved `electron-debug` from runtime `dependencies` to `devDependencies` because it is loaded only in `src/main.dev.ts`.
+- Deferred: Electron major-version upgrade itself remains blocked until dependency install/audit access is available.
+
+## Phase 5 execution log (react/typescript compatibility pass)
+- Deferred: no React/TypeScript version bump applied yet to avoid unverified behavior changes without install/build validation.
+
+## Phase 6 execution log (build/dev script fix)
+- Completed: `package` script now uses a cross-platform clean/build/package chain while preserving existing packaging flow.
+
+## Phase 7 execution log (lint/test cleanup)
+- Deferred: lint/test stack migration is postponed until toolchain packages can be installed and validated in CI/dev with registry access.
+
+## Phase 8 execution log (manual app verification)
+- Blocked in this environment: manual app verification cannot be completed reliably without successful dependency install and packaged build in a network-permitted runner.
+
