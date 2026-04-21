@@ -107,7 +107,6 @@ export default merge(baseConfig, {
   devServer: {
     port,
     compress: true,
-    stats: 'errors-only',
     hot: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
     static: {
