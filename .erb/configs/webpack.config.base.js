@@ -3,8 +3,13 @@
  */
 
 import path from 'path';
+import fs from 'fs';
 import webpack from 'webpack';
-import { dependencies as externals } from '../../src/package.json';
+
+const srcPackageJson = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../src/package.json'), 'utf8')
+);
+const externals = srcPackageJson.dependencies;
 
 export default {
   externals: [...Object.keys(externals || {})],
