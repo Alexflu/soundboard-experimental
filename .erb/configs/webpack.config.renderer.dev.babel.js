@@ -108,12 +108,8 @@ export default merge(baseConfig, {
     port,
     host: 'localhost',
     allowedHosts: 'all',
-    webSocketServer: 'ws',
     compress: true,
     hot: true,
-    client: {
-      webSocketTransport: 'ws',
-    },
     headers: { 'Access-Control-Allow-Origin': '*' },
     static: {
       directory: path.join(__dirname, 'dist'),
