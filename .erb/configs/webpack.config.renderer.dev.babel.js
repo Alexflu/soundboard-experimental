@@ -58,7 +58,7 @@ export default merge(baseConfig, {
   entry: [
     'core-js',
     'regenerator-runtime/runtime',
-    require.resolve('../../src/index.tsx'),
+    path.join(__dirname, '../../src/index.tsx'),
   ],
 
   output: {
@@ -75,7 +75,7 @@ export default merge(baseConfig, {
       ? null
       : new webpack.DllReferencePlugin({
           context: path.join(__dirname, '../dll'),
-          manifest: require(manifest),
+          manifest: JSON.parse(fs.readFileSync(manifest, 'utf8')),
           sourceType: 'var',
         }),
 

@@ -4,10 +4,10 @@ export const rendererModuleRules = [
     exclude: /node_modules/,
     use: [
       {
-        loader: require.resolve('babel-loader'),
+        loader: 'babel-loader',
         options: {
           plugins: [
-            require.resolve('react-refresh/babel'),
+            'react-refresh/babel',
           ].filter(Boolean),
         },
       },
