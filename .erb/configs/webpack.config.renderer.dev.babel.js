@@ -96,7 +96,9 @@ export default merge(baseConfig, {
       debug: true,
     }),
 
-    new ReactRefreshWebpackPlugin(),
+    new ReactRefreshWebpackPlugin({
+      overlay: false,
+    }),
   ],
 
   node: {
