@@ -262,25 +262,29 @@ export default merge(baseConfig, {
 
   devServer: {
     port,
-    publicPath,
     compress: true,
-    noInfo: false,
-    stats: 'errors-only',
-    inline: true,
-    lazy: false,
     hot: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
-    contentBase: path.join(__dirname, 'dist'),
-    watchOptions: {
-      aggregateTimeout: 300,
-      ignored: /node_modules/,
-      poll: 100,
+    static: {
+      publicPath,
+      watch: {
+        aggregateTimeout: 300,
+        ignored: /node_modules/,
+        poll: 100,
+      },
+    },
+    devMiddleware: {
+      publicPath,
+      stats: 'errors-only',
+    },
+    client: {
+      logging: 'error',
     },
     historyApiFallback: {
       verbose: true,
       disableDotRule: false,
     },
-    before() {
+    setupMiddlewares(middlewares) {
       console.log('Starting Main Process...');
       spawn(packageManager, packageManagerRun('start:main'), {
         env: mainProcessEnv,
@@ -289,6 +293,7 @@ export default merge(baseConfig, {
       })
         .on('close', (code) => process.exit(code))
         .on('error', (spawnError) => console.error(spawnError));
+      return middlewares;
     },
   },
 });
