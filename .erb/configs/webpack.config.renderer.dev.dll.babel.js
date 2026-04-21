@@ -5,9 +5,13 @@
 import webpack from 'webpack';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { merge } from 'webpack-merge';
 import baseConfig from './webpack.config.base.js';
 import CheckNodeEnv from '../scripts/CheckNodeEnv.js';
+import { rendererModuleRules } from './webpack.config.renderer.rules.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 CheckNodeEnv('development');
 
@@ -16,8 +20,6 @@ const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')
 );
 const dependencies = packageJson.dependencies;
-const rendererConfigModule = require('./webpack.config.renderer.dev.babel');
-const rendererConfig = rendererConfigModule.default || rendererConfigModule;
 
 export default merge(baseConfig, {
   context: path.join(__dirname, '../..'),
@@ -33,7 +35,9 @@ export default merge(baseConfig, {
   /**
    * Use `module` from `webpack.config.renderer.dev.js`
    */
-  module: rendererConfig.module,
+  module: {
+    rules: rendererModuleRules,
+  },
 
   entry: {
     renderer: Object.keys(dependencies || {}),
