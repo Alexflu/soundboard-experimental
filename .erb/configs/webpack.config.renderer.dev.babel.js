@@ -24,9 +24,6 @@ const dllDir = path.join(__dirname, '../dll');
 const manifest = path.resolve(dllDir, 'renderer.json');
 const mainProcessEnv = { ...process.env };
 delete mainProcessEnv.NODE_OPTIONS;
-const requiredByDLLConfig = Boolean(
-  module.parent && module.parent.filename.includes('webpack.config.renderer.dev.dll')
-);
 
 const userAgent = process.env.npm_config_user_agent || '';
 const packageManager = userAgent.includes('yarn') ? 'yarn' : 'npm';
@@ -39,7 +36,7 @@ const spawnWithShell = process.platform === 'win32';
 /**
  * Warn if the DLL is not built
  */
-if (!requiredByDLLConfig && !(fs.existsSync(dllDir) && fs.existsSync(manifest))) {
+if (!(fs.existsSync(dllDir) && fs.existsSync(manifest))) {
   console.log(
     chalk.black.bgYellow.bold(
       'The DLL files are missing. Sit back while we build them for you with "yarn build-dll"'
@@ -71,13 +68,11 @@ export default merge(baseConfig, {
   },
   plugins: [
 
-    requiredByDLLConfig
-      ? null
-      : new webpack.DllReferencePlugin({
-          context: path.join(__dirname, '../dll'),
-          manifest: JSON.parse(fs.readFileSync(manifest, 'utf8')),
-          sourceType: 'var',
-        }),
+    new webpack.DllReferencePlugin({
+      context: path.join(__dirname, '../dll'),
+      manifest: JSON.parse(fs.readFileSync(manifest, 'utf8')),
+      sourceType: 'var',
+    }),
 
     new webpack.NoEmitOnErrorsPlugin(),
 
