@@ -12,6 +12,8 @@ import CheckNodeEnv from '../scripts/CheckNodeEnv';
 CheckNodeEnv('development');
 
 const dist = path.join(__dirname, '../dll');
+const rendererConfigModule = require('./webpack.config.renderer.dev.babel');
+const rendererConfig = rendererConfigModule.default || rendererConfigModule;
 
 export default merge(baseConfig, {
   context: path.join(__dirname, '../..'),
@@ -27,7 +29,7 @@ export default merge(baseConfig, {
   /**
    * Use `module` from `webpack.config.renderer.dev.js`
    */
-  module: require('./webpack.config.renderer.dev.babel').default.module,
+  module: rendererConfig.module,
 
   entry: {
     renderer: Object.keys(dependencies || {}),

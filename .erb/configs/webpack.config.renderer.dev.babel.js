@@ -20,8 +20,8 @@ const dllDir = path.join(__dirname, '../dll');
 const manifest = path.resolve(dllDir, 'renderer.json');
 const mainProcessEnv = { ...process.env };
 delete mainProcessEnv.NODE_OPTIONS;
-const requiredByDLLConfig = module.parent.filename.includes(
-  'webpack.config.renderer.dev.dll'
+const requiredByDLLConfig = Boolean(
+  module.parent && module.parent.filename.includes('webpack.config.renderer.dev.dll')
 );
 
 const userAgent = process.env.npm_config_user_agent || '';
@@ -262,25 +262,30 @@ export default merge(baseConfig, {
 
   devServer: {
     port,
-    publicPath,
     compress: true,
-    noInfo: false,
     stats: 'errors-only',
-    inline: true,
-    lazy: false,
     hot: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
-    contentBase: path.join(__dirname, 'dist'),
-    watchOptions: {
-      aggregateTimeout: 300,
-      ignored: /node_modules/,
-      poll: 100,
+    static: {
+      directory: path.join(__dirname, 'dist'),
+    },
+    devMiddleware: {
+      publicPath,
+      stats: 'errors-only',
+    },
+    watchFiles: {
+      paths: ['src/**/*'],
+      options: {
+        aggregateTimeout: 300,
+        ignored: /node_modules/,
+        poll: 100,
+      },
     },
     historyApiFallback: {
       verbose: true,
       disableDotRule: false,
     },
-    before() {
+    setupMiddlewares(middlewares) {
       console.log('Starting Main Process...');
       spawn(packageManager, packageManagerRun('start:main'), {
         env: mainProcessEnv,
@@ -289,6 +294,8 @@ export default merge(baseConfig, {
       })
         .on('close', (code) => process.exit(code))
         .on('error', (spawnError) => console.error(spawnError));
+
+      return middlewares;
     },
   },
 });
