@@ -10,19 +10,19 @@
  */
 import 'core-js/stable/index.js';
 import 'regenerator-runtime/runtime.js';
-import path, { dirname } from 'path';
+import path from 'path';
 import { app, BrowserWindow, Menu, nativeImage, shell, Tray } from 'electron';
 import pkg from 'electron-updater';
+  const { autoUpdater } = pkg;
 import log from 'electron-log';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
 import MenuBuilder from './menu.ts';
+import { createRequire } from 'module';
+  const require = createRequire(import.meta.url);
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-const { autoUpdater } = pkg;
-const require = createRequire(import.meta.url);
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
 
 export default class AppUpdater {
   constructor() {
