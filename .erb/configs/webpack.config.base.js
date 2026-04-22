@@ -3,8 +3,15 @@
  */
 
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import webpack from 'webpack';
-import { dependencies as externals } from '../../src/package.json';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const srcPackageJson = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../src/package.json'), 'utf8')
+);
+const externals = srcPackageJson.dependencies;
 
 export default {
   externals: [...Object.keys(externals || {})],
@@ -26,6 +33,8 @@ export default {
 
   output: {
     path: path.join(__dirname, '../../src'),
+    // Avoid OpenSSL 3 MD4 hashing issues on modern Node versions.
+    hashFunction: 'xxhash64',
     // https://github.com/webpack/webpack/issues/1114
     libraryTarget: 'commonjs2',
   },

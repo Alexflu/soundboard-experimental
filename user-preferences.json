@@ -1,0 +1,1 @@
+{"audioOutput":{"id":"default","name":"default"},"pathToSoundsJson":"sounds.json","hotkeys":{"randomSound":"Control+F1","stopAllSounds":"Control+Shift+S"},"bindings":[{"key":"Control+2","sound":{"id":"https://www.myinstants.com/media/sounds/yoshi-tongue.mp3","name":"yoshi tongue","url":"https://www.myinstants.com/media/sounds/yoshi-tongue.mp3","source":"MyInstant","volume":1}}]}
