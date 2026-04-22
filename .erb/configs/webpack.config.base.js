@@ -33,6 +33,8 @@ export default {
 
   output: {
     path: path.join(__dirname, '../../src'),
+    // Avoid OpenSSL 3 MD4 hashing issues on modern Node versions.
+    hashFunction: 'xxhash64',
     // https://github.com/webpack/webpack/issues/1114
     libraryTarget: 'commonjs2',
   },
