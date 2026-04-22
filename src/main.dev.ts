@@ -12,13 +12,12 @@ import 'core-js/stable/index.js';
 import 'regenerator-runtime/runtime.js';
 import path, { dirname } from 'path';
 import { app, BrowserWindow, Menu, nativeImage, shell, Tray } from 'electron';
-import pkg from 'electron-updater';
+import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import MenuBuilder from './menu.ts';
 
-const { autoUpdater } = pkg;
 const require = createRequire(import.meta.url);
 
 const __filename = fileURLToPath(import.meta.url);
