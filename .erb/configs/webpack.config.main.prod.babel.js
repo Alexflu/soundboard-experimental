@@ -12,7 +12,8 @@ import baseConfig from './webpack.config.base.js';
 import CheckNodeEnv from '../scripts/CheckNodeEnv.js';
 import DeleteSourceMaps from '../scripts/DeleteSourceMaps.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 CheckNodeEnv('production');
 DeleteSourceMaps();
