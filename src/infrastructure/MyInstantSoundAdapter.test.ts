@@ -9,6 +9,15 @@ jest.mock('node-fetch', () => jest.fn());
 
 describe('MyInstantSoundAdapterTest', () => {
   const myInstantSoundAdapter = new MyInstantSoundAdapter();
+  let consoleErrorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
 
   it('should get sounds', async () => {
     const json = {

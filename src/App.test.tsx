@@ -1,11 +1,15 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import App from './App';
 
 describe('App', () => {
-  it('should render', () => {
+  it('should render', async () => {
     jest.spyOn(window, 'alert').mockImplementation(() => {});
-    expect(render(<App />)).toBeTruthy();
+    const { container } = render(<App />);
+
+    await waitFor(() => {
+      expect(container.querySelector('.app-view')).toBeInTheDocument();
+    });
   });
 });
