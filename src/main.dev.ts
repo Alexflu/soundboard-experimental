@@ -5,7 +5,7 @@
  * electron renderer process from here and communicate with the other processes
  * through IPC.
  *
- * When running `yarn build` or `yarn build-main`, this file is compiled to
+ * When running `yarn build` or `yarn build:main`, this file is compiled to
  * `./src/main.prod.js` using webpack. This gives us some performance wins.
  */
 import 'core-js/stable/index.js';
@@ -152,7 +152,7 @@ const createWindow = async () => {
   );
   tray.setToolTip('Soundboard');
   tray.setIgnoreDoubleClickEvents(true);
-  tray.on('click', (_) => mainWindow?.show());
+  tray.on('click', () => mainWindow?.show());
 
   mainWindow.loadURL(`file://${__dirname}/index.html`);
 
