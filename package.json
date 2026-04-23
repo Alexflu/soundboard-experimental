@@ -70,7 +70,6 @@
       "target": [
         "nsis"
       ],
-
       "icon": "assets/logo.png"
     },
     "linux": {
@@ -143,8 +142,11 @@
       "node_modules",
       "src/node_modules"
     ],
-    "setupFiles": [
-      "./.erb/scripts/CheckBuildsExist.js"
+    "haste": {
+      "throwOnModuleCollision": false
+    },
+    "modulePathIgnorePatterns": [
+      "<rootDir>/src/package.json"
     ]
   },
   "devDependencies": {
@@ -225,7 +227,6 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-react": "^7.20.6",
     "eslint-plugin-react-hooks": "^4.0.8",
-    "file-loader": "^6.0.0",
     "husky": "^4.2.5",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^26.1.0",
@@ -241,7 +242,6 @@
     "style-loader": "^2.0.0",
     "terser-webpack-plugin": "^5.0.3",
     "typescript": "^4.0.5",
-    "url-loader": "^4.1.0",
     "webpack": "^5.106.2",
     "webpack-bundle-analyzer": "^4.1.0",
     "webpack-cli": "^7.0.2",

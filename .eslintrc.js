@@ -34,4 +34,14 @@ module.exports = {
       '@typescript-eslint/parser': ['.ts', '.tsx'],
     },
   },
+  overrides: [
+    {
+      files: ['src/main.dev.ts'],
+      rules: {
+        'import/extensions': 'off',
+        '@typescript-eslint/naming-convention': 'off',
+        'no-underscore-dangle': 'off',
+      },
+    },
+  ],
 };

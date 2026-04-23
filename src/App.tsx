@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import './App.global.css';
 import { FaCog } from 'react-icons/fa/';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import SoundsView from './application/view/SoundsView';
 import SettingsView from './application/view/SettingsView';
 import TopBarComponent from './application/component/TopBarComponent';
@@ -16,7 +16,12 @@ import {
 } from './domain/entities/HotkeyPreferences';
 import { HotkeyBinding } from './domain/entities/UserPreferences';
 
-const globalShortcut = require('electron').remote?.globalShortcut;
+const { ipcRenderer } = require('electron');
+
+type HotkeyHandler = {
+  callback: () => Promise<void>;
+  errorMessage: string;
+};
 
 export default function App() {
   const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
@@ -29,15 +34,24 @@ export default function App() {
   );
   const filtersRef = useRef(filters);
 
-  const registerSound = (stopSound: () => void) =>
-    setStopAllSounds((current) => current.concat(stopSound));
+  const registerSound = useCallback(
+    (stopSound: () => void) =>
+      setStopAllSounds((current) => current.concat(stopSound)),
+    []
+  );
 
-  const registerPlayer = (player: { stop: () => void } | null) => {
-    if (player) {
-      registerSound(() => player.stop());
-    }
-  };
-  const stopAll = () => stopAllSounds.forEach((stopSound) => stopSound());
+  const registerPlayer = useCallback(
+    (player: { stop: () => void } | null) => {
+      if (player) {
+        registerSound(() => player.stop());
+      }
+    },
+    [registerSound]
+  );
+  const stopAll = useCallback(
+    () => stopAllSounds.forEach((stopSound) => stopSound()),
+    [stopAllSounds]
+  );
 
   const isTypingInField = () => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -69,25 +83,48 @@ export default function App() {
 
   useEffect(() => {
     const registeredAccelerators: string[] = [];
+    const handlersByAccelerator: Record<string, HotkeyHandler> = {};
+
+    const onShortcutTriggered = (_event: unknown, accelerator: string) => {
+      if (isTypingInField()) {
+        return;
+      }
+
+      const handler = handlersByAccelerator[accelerator];
+      if (!handler) {
+        return;
+      }
+
+      handler.callback().catch(() => {
+        toast.error(handler.errorMessage);
+      });
+    };
+
+    ipcRenderer?.on('shortcut:triggered', onShortcutTriggered);
+
     const registerAccelerator = (
       accelerator: string,
-      handler: () => Promise<void>,
+      callback: () => Promise<void>,
       errorMessage: string
     ) => {
       if (!accelerator || registeredAccelerators.includes(accelerator)) {
         return;
       }
 
-      globalShortcut?.register(accelerator, () => {
-        if (isTypingInField()) {
-          return;
-        }
+      handlersByAccelerator[accelerator] = {
+        callback,
+        errorMessage,
+      };
 
-        handler().catch((e) => {
-          toast.error(errorMessage);
-          console.error(e);
-        });
-      });
+      const registrationSucceeded = ipcRenderer?.sendSync(
+        'shortcut:register',
+        accelerator
+      );
+      if (!registrationSucceeded) {
+        delete handlersByAccelerator[accelerator];
+        toast.error(`Failed to register hotkey: ${accelerator}`);
+        return;
+      }
 
       registeredAccelerators.push(accelerator);
     };
@@ -133,11 +170,12 @@ export default function App() {
     });
 
     return () => {
+      ipcRenderer?.removeListener('shortcut:triggered', onShortcutTriggered);
       registeredAccelerators.forEach((accelerator) => {
-        globalShortcut?.unregister(accelerator);
+        ipcRenderer?.send('shortcut:unregister', accelerator);
       });
     };
-  }, [hotkeys, bindings, stopAllSounds]);
+  }, [hotkeys, bindings, registerPlayer, stopAll]);
 
   return (
     <Router>

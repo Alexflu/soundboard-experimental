@@ -10,7 +10,7 @@ const FilterComponent = ({
 }) => {
   const [search, setSearch] = useState('');
 
-  const onChange = (event: any) => {
+  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);
     sendFiltersToParent(new Filters(event.target.value));
   };
