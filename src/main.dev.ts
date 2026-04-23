@@ -21,13 +21,13 @@ import {
   shell,
   Tray,
 } from 'electron';
-import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import MenuBuilder from './menu.ts';
 
 const require = createRequire(import.meta.url);
+const { autoUpdater } = require('electron-updater');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
