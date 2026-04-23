@@ -70,7 +70,6 @@
       "target": [
         "nsis"
       ],
-
       "icon": "assets/logo.png"
     },
     "linux": {
@@ -143,8 +142,11 @@
       "node_modules",
       "src/node_modules"
     ],
-    "setupFiles": [
-      "./.erb/scripts/CheckBuildsExist.js"
+    "haste": {
+      "throwOnModuleCollision": false
+    },
+    "modulePathIgnorePatterns": [
+      "<rootDir>/src/package.json"
     ]
   },
   "devDependencies": {

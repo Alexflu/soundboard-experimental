@@ -1,4 +1,4 @@
-import { app, remote } from 'electron';
+import { app } from 'electron';
 import fs from 'fs';
 import {
   AudioOutput,
@@ -6,6 +6,7 @@ import {
 } from '../domain/entities/UserPreferences';
 
 const path = require('path');
+const { ipcRenderer } = require('electron');
 
 class UserPreferenceAdapter {
   path: string;
@@ -127,8 +128,10 @@ class UserPreferenceAdapter {
   }
 
   private static getFilePath(name: string): string {
-    const myApp = app || remote?.app;
-    const userDataPath = myApp ? myApp.getPath('userData') : '';
+    const userDataPath =
+      app?.getPath?.('userData') ||
+      ipcRenderer?.sendSync('app:getPath', 'userData') ||
+      '';
     return path.join(userDataPath, name);
   }
 }
