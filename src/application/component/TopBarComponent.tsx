@@ -1,24 +1,17 @@
 import * as React from 'react';
 import { FaMinus, FaTimes, FaWindowMaximize } from 'react-icons/fa';
 
-const BrowserWindow = require('electron').remote?.BrowserWindow;
+const { ipcRenderer } = require('electron');
 
 const TopBarComponent = () => {
   const minimize = () => {
-    const window = BrowserWindow.getFocusedWindow();
-    window?.minimize();
+    ipcRenderer?.send('window:minimize');
   };
   const maximize = () => {
-    const window = BrowserWindow.getFocusedWindow();
-    if (window?.isMaximized()) {
-      window?.unmaximize();
-    } else {
-      window?.maximize();
-    }
+    ipcRenderer?.send('window:toggle-maximize');
   };
   const closeWindow = () => {
-    const window = BrowserWindow.getFocusedWindow();
-    window?.hide();
+    ipcRenderer?.send('window:hide');
   };
 
   return (

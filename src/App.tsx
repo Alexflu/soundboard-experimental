@@ -16,7 +16,12 @@ import {
 } from './domain/entities/HotkeyPreferences';
 import { HotkeyBinding } from './domain/entities/UserPreferences';
 
-const globalShortcut = require('electron').remote?.globalShortcut;
+const { ipcRenderer } = require('electron');
+
+type HotkeyHandler = {
+  callback: () => Promise<void>;
+  errorMessage: string;
+};
 
 export default function App() {
   const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
@@ -69,25 +74,49 @@ export default function App() {
 
   useEffect(() => {
     const registeredAccelerators: string[] = [];
+    const handlersByAccelerator: Record<string, HotkeyHandler> = {};
+
+    const onShortcutTriggered = (_event: unknown, accelerator: string) => {
+      if (isTypingInField()) {
+        return;
+      }
+
+      const handler = handlersByAccelerator[accelerator];
+      if (!handler) {
+        return;
+      }
+
+      handler.callback().catch((e) => {
+        toast.error(handler.errorMessage);
+        console.error(e);
+      });
+    };
+
+    ipcRenderer?.on('shortcut:triggered', onShortcutTriggered);
+
     const registerAccelerator = (
       accelerator: string,
-      handler: () => Promise<void>,
+      callback: () => Promise<void>,
       errorMessage: string
     ) => {
       if (!accelerator || registeredAccelerators.includes(accelerator)) {
         return;
       }
 
-      globalShortcut?.register(accelerator, () => {
-        if (isTypingInField()) {
-          return;
-        }
+      handlersByAccelerator[accelerator] = {
+        callback,
+        errorMessage,
+      };
 
-        handler().catch((e) => {
-          toast.error(errorMessage);
-          console.error(e);
-        });
-      });
+      const registrationSucceeded = ipcRenderer?.sendSync(
+        'shortcut:register',
+        accelerator
+      );
+      if (!registrationSucceeded) {
+        delete handlersByAccelerator[accelerator];
+        toast.error(`Failed to register hotkey: ${accelerator}`);
+        return;
+      }
 
       registeredAccelerators.push(accelerator);
     };
@@ -133,8 +162,9 @@ export default function App() {
     });
 
     return () => {
+      ipcRenderer?.removeListener('shortcut:triggered', onShortcutTriggered);
       registeredAccelerators.forEach((accelerator) => {
-        globalShortcut?.unregister(accelerator);
+        ipcRenderer?.send('shortcut:unregister', accelerator);
       });
     };
   }, [hotkeys, bindings, stopAllSounds]);

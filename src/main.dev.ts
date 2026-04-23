@@ -11,7 +11,16 @@
 import 'core-js/stable/index.js';
 import 'regenerator-runtime/runtime.js';
 import path, { dirname } from 'path';
-import { app, BrowserWindow, Menu, nativeImage, shell, Tray } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  nativeImage,
+  shell,
+  Tray,
+} from 'electron';
 import updater from 'electron-updater';
 import log from 'electron-log';
 import { createRequire } from 'module';
@@ -85,9 +94,42 @@ const createWindow = async () => {
     icon: getAssetPath('logo.png'),
     webPreferences: {
       nodeIntegration: true,
-      enableRemoteModule: true,
       contextIsolation: false,
     },
+  });
+
+  ipcMain.on('window:minimize', () => {
+    mainWindow?.minimize();
+  });
+
+  ipcMain.on('window:toggle-maximize', () => {
+    if (!mainWindow) {
+      return;
+    }
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+
+  ipcMain.on('window:hide', () => {
+    mainWindow?.hide();
+  });
+
+  ipcMain.on('app:getPath', (event, pathName) => {
+    event.returnValue = app.getPath(pathName);
+  });
+
+  ipcMain.on('shortcut:register', (event, accelerator: string) => {
+    const registered = globalShortcut.register(accelerator, () => {
+      mainWindow?.webContents.send('shortcut:triggered', accelerator);
+    });
+    event.returnValue = registered;
+  });
+
+  ipcMain.on('shortcut:unregister', (_event, accelerator: string) => {
+    globalShortcut.unregister(accelerator);
   });
 
   const logoIco = nativeImage
@@ -160,6 +202,16 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+  ipcMain.removeAllListeners('window:minimize');
+  ipcMain.removeAllListeners('window:toggle-maximize');
+  ipcMain.removeAllListeners('window:hide');
+  ipcMain.removeAllListeners('app:getPath');
+  ipcMain.removeAllListeners('shortcut:register');
+  ipcMain.removeAllListeners('shortcut:unregister');
 });
 
 app.whenReady().then(createWindow).catch(console.log);
