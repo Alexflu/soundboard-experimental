@@ -70,7 +70,7 @@
       "target": [
         "nsis"
       ],
-      "publisherName": "Glecun",
+
       "icon": "assets/logo.png"
     },
     "linux": {
