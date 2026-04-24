@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import './App.global.css';
 import { FaCog } from 'react-icons/fa/';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import SoundsView from './application/view/SoundsView';
 import SettingsView from './application/view/SettingsView';
 import TopBarComponent from './application/component/TopBarComponent';
@@ -34,15 +34,24 @@ export default function App() {
   );
   const filtersRef = useRef(filters);
 
-  const registerSound = (stopSound: () => void) =>
-    setStopAllSounds((current) => current.concat(stopSound));
+  const registerSound = useCallback(
+    (stopSound: () => void) =>
+      setStopAllSounds((current) => current.concat(stopSound)),
+    []
+  );
 
-  const registerPlayer = (player: { stop: () => void } | null) => {
-    if (player) {
-      registerSound(() => player.stop());
-    }
-  };
-  const stopAll = () => stopAllSounds.forEach((stopSound) => stopSound());
+  const registerPlayer = useCallback(
+    (player: { stop: () => void } | null) => {
+      if (player) {
+        registerSound(() => player.stop());
+      }
+    },
+    [registerSound]
+  );
+  const stopAll = useCallback(
+    () => stopAllSounds.forEach((stopSound) => stopSound()),
+    [stopAllSounds]
+  );
 
   const isTypingInField = () => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -167,7 +176,7 @@ export default function App() {
         ipcRenderer?.send('shortcut:unregister', accelerator);
       });
     };
-  }, [hotkeys, bindings, stopAllSounds]);
+  }, [hotkeys, bindings, registerPlayer, stopAll]);
 
   return (
     <Router>

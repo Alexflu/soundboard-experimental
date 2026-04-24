@@ -4,13 +4,13 @@ import Source from './entities/Source';
 import Filters from './entities/Filters';
 
 describe('SoundboardDomainTest', () => {
-  const localSoundAdapter: any = {
+  const localSoundAdapter = {
     getSounds: jest.fn(() => []),
   };
-  const myInstantSoundAdapter: any = {
+  const myInstantSoundAdapter = {
     getSounds: jest.fn(() => []),
   };
-  const userPreferenceAdapter: any = {
+  const userPreferenceAdapter = {
     getUserPreferences: jest.fn(() => ({ pathToSoundsJson: '' })),
   };
 

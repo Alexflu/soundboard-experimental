@@ -25,7 +25,6 @@ class MyInstantSoundAdapter {
       }
     } catch (error) {
       toast.error('Cannot get myInstant Sounds');
-      console.error(error);
     }
     return Promise.resolve([]);
   }

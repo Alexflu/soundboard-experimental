@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   FaGlobeAmericas,
   FaHdd,
@@ -42,15 +42,14 @@ const SoundsView = ({
     Record<string, number>
   >({});
 
-  const reloadSounds = () => {
+  const reloadSounds = useCallback(() => {
     soundboardDomain
       .getSounds(filters)
       .then((filteredSounds: Sound[]) => setSounds(filteredSounds))
-      .catch((e) => {
-        console.error(e);
+      .catch(() => {
         toast.error('Cannot get sounds');
       });
-  };
+  }, [filters]);
   const onFilterUpdated = (newFilters: Filters) => {
     const updated = Filters.fromFilters(newFilters);
     setFilters(updated);
@@ -97,7 +96,7 @@ const SoundsView = ({
     soundboardDomain.setBindingVolume(binding.key, volume);
   };
 
-  useEffect(() => reloadSounds(), [filters]);
+  useEffect(() => reloadSounds(), [reloadSounds]);
   useEffect(() => {
     const unregister = soundboardDomain.watchUserPreferences(
       (updatedPreferences: UserPreferences) => {

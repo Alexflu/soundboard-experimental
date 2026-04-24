@@ -35,7 +35,6 @@ class LocalSoundAdapter {
       fs.writeFileSync(pathToSoundsJson, JSON.stringify(localSoundsFileJson));
     } catch (e) {
       toast.info(`Cannot add file ${soundPath}`);
-      console.log(e);
     }
   }
 
@@ -49,16 +48,14 @@ class LocalSoundAdapter {
       fs.writeFileSync(pathToSoundsJson, JSON.stringify(localSoundsFileJson));
     } catch (e) {
       toast.info(`Cannot remove file ${soundPath}`);
-      console.log(e);
     }
   }
 
-  private static parseJson(rawData: any): LocalSoundFileJson {
+  private static parseJson(rawData: Buffer | string): LocalSoundFileJson {
     try {
-      return JSON.parse(rawData);
-    } catch (e) {
-      toast.error(`Cannot parse json: ${rawData}`);
-      console.error(e);
+      return JSON.parse(rawData.toString());
+    } catch {
+      toast.error(`Cannot parse sounds json file`);
       return new LocalSoundFileJson([]);
     }
   }
