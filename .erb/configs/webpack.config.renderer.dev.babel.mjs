@@ -5,9 +5,9 @@ import webpack from 'webpack';
 import chalk from 'chalk';
 import { merge } from 'webpack-merge';
 import { spawn, execSync } from 'child_process';
-import baseConfig from './webpack.config.base.js';
-import CheckNodeEnv from '../scripts/CheckNodeEnv.js';
-import { rendererModuleRules } from './webpack.config.renderer.rules.js';
+import baseConfig from './webpack.config.base.mjs';
+import CheckNodeEnv from '../scripts/CheckNodeEnv.mjs';
+import { rendererModuleRules } from './webpack.config.renderer.rules.mjs';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -31,7 +31,6 @@ const packageManagerRun = (scriptName) =>
   packageManager === 'yarn' ? [scriptName] : ['run', scriptName];
 const packageManagerCommand = (scriptName) =>
   [packageManager].concat(packageManagerRun(scriptName)).join(' ');
-const spawnWithShell = process.platform === 'win32';
 
 /**
  * Warn if the DLL is not built
@@ -42,7 +41,7 @@ if (!(fs.existsSync(dllDir) && fs.existsSync(manifest))) {
       'The DLL files are missing. Sit back while we build them for you with "yarn build-dll"'
     )
   );
-  execSync(packageManagerCommand('build-dll'), { stdio: 'inherit', shell: spawnWithShell });
+  execSync(packageManagerCommand('build-dll'), { stdio: 'inherit' });
 }
 
 export default merge(baseConfig, {
@@ -134,10 +133,10 @@ export default merge(baseConfig, {
     },
     setupMiddlewares(middlewares) {
       console.log('Starting Main Process...');
-      spawn(packageManager, packageManagerRun('start:main'), {
+      spawn(packageManagerCommand('start:main'), {
         env: mainProcessEnv,
         stdio: 'inherit',
-        shell: spawnWithShell,
+        shell: true,
       })
         .on('close', (code) => process.exit(code))
         .on('error', (spawnError) => console.error(spawnError));

@@ -20,6 +20,7 @@ import {
   nativeImage,
   shell,
   Tray,
+  session,
 } from 'electron';
 import log from 'electron-log';
 import { createRequire } from 'module';
@@ -55,14 +56,15 @@ if (
 }
 
 const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = ['REACT_DEVELOPER_TOOLS'];
+  const reactDevToolsPath = process.env.REACT_DEVELOPER_TOOLS_PATH;
+  if (!reactDevToolsPath) {
+    return;
+  }
+
   try {
-    await installer.default(
-      extensions.map((name) => installer[name]),
-      forceDownload
-    );
+    await session.defaultSession.loadExtension(reactDevToolsPath, {
+      allowFileAccess: true,
+    });
   } catch {
     // React DevTools are optional in development.
   }

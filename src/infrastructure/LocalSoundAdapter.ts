@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
-import { LocalSoundFileJson, LocalSoundJson } from './dto/LocalSoundJson';
+import LocalSoundFileJson from './dto/LocalSoundFileJson';
+import LocalSoundJson from './dto/LocalSoundJson';
 import Sound from '../domain/entities/Sound';
 
 const fs = require('fs');
