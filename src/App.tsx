@@ -95,9 +95,8 @@ export default function App() {
         return;
       }
 
-      handler.callback().catch((e) => {
+      handler.callback().catch(() => {
         toast.error(handler.errorMessage);
-        console.error(e);
       });
     };
 

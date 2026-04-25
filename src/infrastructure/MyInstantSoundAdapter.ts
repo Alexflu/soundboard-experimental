@@ -6,13 +6,14 @@ import MyInstantSoundJson from './dto/MyInstantSoundJson';
 const fetch = require('node-fetch');
 
 class MyInstantSoundAdapter {
+  private readonly myInstantApiUrl =
+    'https://www.myinstants.com/api/v1/instants/';
+
   async getSounds(search: string): Promise<Sound[]> {
     try {
       if (search != null && search.length >= 2) {
         return await fetch(
-          `https://www.myinstants.com/api/v1/instants/?name=${encodeURI(
-            search
-          )}&format=json`
+          `${this.myInstantApiUrl}?name=${encodeURI(search)}&format=json`
         )
           .then((response: Response) => response.json())
           .then((dataJson: { results: MyInstantSoundJson[] }) =>

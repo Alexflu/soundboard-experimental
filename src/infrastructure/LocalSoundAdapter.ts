@@ -16,7 +16,7 @@ class LocalSoundAdapter {
     }
 
     const localSoundsFileJson: LocalSoundFileJson = rawData
-      ? LocalSoundAdapter.parseJson(rawData)
+      ? this.parseJson(rawData)
       : new LocalSoundFileJson([]);
     return localSoundsFileJson.soundboardEntries
       .map((localSoundJson) =>
@@ -28,7 +28,7 @@ class LocalSoundAdapter {
   addSound(pathToSoundsJson: string, soundPath: string) {
     try {
       const rawData = fs.readFileSync(pathToSoundsJson);
-      const localSoundsFileJson = LocalSoundAdapter.parseJson(rawData);
+      const localSoundsFileJson = this.parseJson(rawData);
       localSoundsFileJson.soundboardEntries.push(
         new LocalSoundJson([], soundPath)
       );
@@ -41,7 +41,7 @@ class LocalSoundAdapter {
   removeSound(pathToSoundsJson: string, soundPath: string) {
     try {
       const rawData = fs.readFileSync(pathToSoundsJson);
-      const localSoundsFileJson = LocalSoundAdapter.parseJson(rawData);
+      const localSoundsFileJson = this.parseJson(rawData);
       localSoundsFileJson.soundboardEntries = localSoundsFileJson.soundboardEntries.filter(
         (sound) => !soundPath.includes(sound.file)
       );
@@ -51,11 +51,11 @@ class LocalSoundAdapter {
     }
   }
 
-  private static parseJson(rawData: Buffer | string): LocalSoundFileJson {
+  private parseJson(rawData: Buffer | string): LocalSoundFileJson {
     try {
       return JSON.parse(rawData.toString());
     } catch {
-      toast.error(`Cannot parse sounds json file`);
+      toast.error(`${this.constructor.name}: Cannot parse sounds json file`);
       return new LocalSoundFileJson([]);
     }
   }

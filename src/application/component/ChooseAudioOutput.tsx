@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import Select from 'react-select';
+import Select, {
+  CSSObjectWithLabel,
+  SingleValue,
+  StylesConfig,
+} from 'react-select';
 import { toast } from 'react-toastify';
 
 import {
@@ -70,8 +74,8 @@ const ChooseAudioOutput = () => {
     );
   };
 
-  const customStyles = {
-    option: (base: any, state: any) => ({
+  const customStyles: StylesConfig<OptionsDevice, false> = {
+    option: (base: CSSObjectWithLabel, state) => ({
       ...base,
       borderBottom: '1px solid #e0e0e0',
       backgroundColor: '#2d2d2d',
@@ -80,7 +84,7 @@ const ChooseAudioOutput = () => {
         backgroundColor: '#3e3e3e',
       },
     }),
-    control: (base: any) => ({
+    control: (base: CSSObjectWithLabel) => ({
       ...base,
       backgroundColor: '#2d2d2d',
       borderColor: '#e0e0e0 !important',
@@ -89,11 +93,11 @@ const ChooseAudioOutput = () => {
       width: '45vw',
       marginLeft: '12px',
     }),
-    singleValue: (base: any) => ({
+    singleValue: (base: CSSObjectWithLabel) => ({
       ...base,
       color: '#e0e0e0',
     }),
-    menu: (base: any) => ({
+    menu: (base: CSSObjectWithLabel) => ({
       ...base,
       backgroundColor: '#2d2d2d',
       border: '1px solid #e0e0e0',
@@ -106,7 +110,9 @@ const ChooseAudioOutput = () => {
       <Select
         styles={customStyles}
         value={selectedOption}
-        onChange={(value: any, _: any) => onSelect(value as OptionsDevice)}
+        onChange={(value: SingleValue<OptionsDevice>) =>
+          onSelect(value as OptionsDevice)
+        }
         options={optionsDevices}
       />
     </div>

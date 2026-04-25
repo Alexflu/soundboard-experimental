@@ -1,6 +1,10 @@
 import { toast } from 'react-toastify';
 import Sound from './Sound';
 
+type AudioWithSinkId = HTMLAudioElement & {
+  setSinkId?: (sinkId: string) => Promise<void>;
+};
+
 class Player {
   player: HTMLAudioElement | undefined;
 
@@ -27,9 +31,13 @@ class Player {
   async play() {
     this.player = new Audio(this.sound.path) as HTMLAudioElement;
     if (this.audioOutputDeviceId !== 'default') {
+      const playerWithSinkId = this.player as AudioWithSinkId;
       try {
-        // @ts-ignore: setSinkId is an experimental method which is not recognized by typescript
-        await this.player.setSinkId(this.audioOutputDeviceId);
+        if (typeof playerWithSinkId.setSinkId !== 'function') {
+          throw new Error('setSinkId is not supported by this browser');
+        }
+
+        await playerWithSinkId.setSinkId(this.audioOutputDeviceId);
       } catch (e) {
         toast.error(`Error when setting sinkId: ${e}`);
       }
