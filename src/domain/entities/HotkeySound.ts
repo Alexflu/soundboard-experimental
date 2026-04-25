@@ -1,6 +1,6 @@
 import Source from './Source';
 
-export class HotkeySound {
+export default class HotkeySound {
   id: string;
 
   name: string;

@@ -1,7 +1,6 @@
 import * as os from 'os';
 import Sound from '../../domain/entities/Sound';
 import Source from '../../domain/entities/Source';
-import LocalSoundFileJson from './LocalSoundFileJson';
 
 class LocalSoundJson {
   activationKeysNumbers: number[];
@@ -33,5 +32,4 @@ class LocalSoundJson {
   }
 }
 
-export { LocalSoundFileJson, LocalSoundJson };
 export default LocalSoundJson;

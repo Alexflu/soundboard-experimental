@@ -5,10 +5,11 @@ import {
   HotkeyMap,
   normalizeHotkeys,
 } from './HotkeyPreferences';
-import { AudioOutput } from './AudioOutput';
-import { HotkeySound } from './HotkeySound';
+import AudioOutput from './AudioOutput';
+import HotkeySound from './HotkeySound';
 
-export { AudioOutput, HotkeySound };
+export { default as AudioOutput } from './AudioOutput';
+export { default as HotkeySound } from './HotkeySound';
 
 export type HotkeyBinding = {
   key: string;

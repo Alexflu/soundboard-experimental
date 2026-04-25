@@ -1,9 +1,12 @@
-import LocalSoundJson from './LocalSoundJson';
+export type LocalSoundJsonData = {
+  activationKeysNumbers: number[];
+  file: string;
+};
 
 export default class LocalSoundFileJson {
-  soundboardEntries: LocalSoundJson[];
+  soundboardEntries: LocalSoundJsonData[];
 
-  constructor(soundboardEntries: LocalSoundJson[]) {
+  constructor(soundboardEntries: LocalSoundJsonData[]) {
     this.soundboardEntries = soundboardEntries;
   }
 }

@@ -1,4 +1,4 @@
-export class AudioOutput {
+export default class AudioOutput {
   id: string;
 
   name: string;

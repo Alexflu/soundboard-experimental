@@ -31,8 +31,6 @@ const packageManagerRun = (scriptName) =>
   packageManager === 'yarn' ? [scriptName] : ['run', scriptName];
 const packageManagerCommand = (scriptName) =>
   [packageManager].concat(packageManagerRun(scriptName)).join(' ');
-const packageManagerExec =
-  process.platform === 'win32' ? `${packageManager}.cmd` : packageManager;
 
 /**
  * Warn if the DLL is not built
@@ -135,9 +133,10 @@ export default merge(baseConfig, {
     },
     setupMiddlewares(middlewares) {
       console.log('Starting Main Process...');
-      spawn(packageManagerExec, packageManagerRun('start:main'), {
+      spawn(packageManagerCommand('start:main'), {
         env: mainProcessEnv,
         stdio: 'inherit',
+        shell: true,
       })
         .on('close', (code) => process.exit(code))
         .on('error', (spawnError) => console.error(spawnError));
