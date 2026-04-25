@@ -1,16 +1,9 @@
 import * as os from 'os';
 import Sound from '../../domain/entities/Sound';
 import Source from '../../domain/entities/Source';
+import LocalSoundFileJson from './LocalSoundFileJson';
 
-export class LocalSoundFileJson {
-  soundboardEntries: LocalSoundJson[];
-
-  constructor(soundboardEntries: LocalSoundJson[]) {
-    this.soundboardEntries = soundboardEntries;
-  }
-}
-
-export class LocalSoundJson {
+class LocalSoundJson {
   activationKeysNumbers: number[];
 
   file: string;
@@ -39,3 +32,6 @@ export class LocalSoundJson {
     return new Sound(name, description, `file://${this.file}`, Source.LOCAL);
   }
 }
+
+export { LocalSoundFileJson, LocalSoundJson };
+export default LocalSoundJson;

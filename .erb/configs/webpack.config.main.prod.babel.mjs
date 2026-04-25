@@ -8,9 +8,9 @@ import webpack from 'webpack';
 import { merge } from 'webpack-merge';
 import TerserPlugin from 'terser-webpack-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
-import baseConfig from './webpack.config.base.js';
-import CheckNodeEnv from '../scripts/CheckNodeEnv.js';
-import DeleteSourceMaps from '../scripts/DeleteSourceMaps.js';
+import baseConfig from './webpack.config.base.mjs';
+import CheckNodeEnv from '../scripts/CheckNodeEnv.mjs';
+import DeleteSourceMaps from '../scripts/DeleteSourceMaps.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

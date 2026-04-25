@@ -7,9 +7,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { merge } from 'webpack-merge';
-import baseConfig from './webpack.config.base.js';
-import CheckNodeEnv from '../scripts/CheckNodeEnv.js';
-import { rendererModuleRules } from './webpack.config.renderer.rules.js';
+import baseConfig from './webpack.config.base.mjs';
+import CheckNodeEnv from '../scripts/CheckNodeEnv.mjs';
+import { rendererModuleRules } from './webpack.config.renderer.rules.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
