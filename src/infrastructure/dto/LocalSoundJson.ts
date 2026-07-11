@@ -2,6 +2,7 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import Sound from '../../domain/entities/Sound';
 import Source from '../../domain/entities/Source';
+import { LocalSoundJsonData } from './LocalSoundFileJson';
 
 class LocalSoundJson {
   activationKeysNumbers: number[];
@@ -13,7 +14,7 @@ class LocalSoundJson {
     this.file = file;
   }
 
-  static fromLocalSoundJson(soundJson: LocalSoundJson) {
+  static fromLocalSoundJson(soundJson: LocalSoundJsonData) {
     return new LocalSoundJson(
       soundJson.activationKeysNumbers || [],
       soundJson.file
