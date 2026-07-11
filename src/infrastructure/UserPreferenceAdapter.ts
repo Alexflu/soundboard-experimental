@@ -31,7 +31,8 @@ class UserPreferenceAdapter {
 
   set(userPreferences: UserPreferences) {
     this.userPreferences = userPreferences;
-    fs.writeFileSync(this.path, JSON.stringify(this.userPreferences));
+    fs.writeFileSync(this.path, JSON.stringify(this.userPreferences), 'utf8');
+    this.notifyListeners();
   }
 
   watch(onChange: (preferences: UserPreferences) => void): () => void {
@@ -51,6 +52,10 @@ class UserPreferenceAdapter {
       fs.unwatchFile(this.path, this.preferenceWatcher);
       this.preferenceWatcher = undefined;
     }
+  }
+
+  private notifyListeners() {
+    this.changeListeners.forEach((listener) => listener(this.userPreferences));
   }
 
   private ensurePreferenceWatcher() {
@@ -77,7 +82,7 @@ class UserPreferenceAdapter {
       return;
     }
     this.userPreferences = updatedPreferences;
-    this.changeListeners.forEach((listener) => listener(this.userPreferences));
+    this.notifyListeners();
   }
 
   private removeListener(onChange: (preferences: UserPreferences) => void) {
@@ -111,7 +116,8 @@ class UserPreferenceAdapter {
         json.hotkeys,
         json.bindings,
         json.hotkeySounds,
-        json.hotkeys
+        json.hotkeys,
+        json.hotkeySettings
       );
     } catch (error) {
       return null;
