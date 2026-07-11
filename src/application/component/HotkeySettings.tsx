@@ -19,16 +19,15 @@ const HotkeySettings = () => {
 
   const updateSettings = (changes: Partial<HotkeySettingsValue>) => {
     const preferences = soundboardDomain.getUserPreferences();
-    soundboardDomain.setUserPreferences(
-      preferences.setHotkeySettings(changes)
-    );
+    soundboardDomain.setUserPreferences(preferences.setHotkeySettings(changes));
   };
 
   return (
     <section className="hotkey-settings">
       <h3>Hotkey behavior</h3>
-      <label className="hotkey-setting-row">
+      <label className="hotkey-setting-row" htmlFor="piano-keys-enabled">
         <input
+          id="piano-keys-enabled"
           type="checkbox"
           checked={settings.pianoKeysEnabled}
           onChange={(event) =>
@@ -41,8 +40,12 @@ const HotkeySettings = () => {
         </span>
       </label>
 
-      <label className="hotkey-setting-row">
+      <label
+        className="hotkey-setting-row"
+        htmlFor="multiple-sounds-per-hotkey"
+      >
         <input
+          id="multiple-sounds-per-hotkey"
           type="checkbox"
           checked={settings.allowMultipleSoundsPerHotkey}
           onChange={(event) =>
@@ -57,8 +60,9 @@ const HotkeySettings = () => {
         </span>
       </label>
 
-      <label className="hotkey-setting-row">
+      <label className="hotkey-setting-row" htmlFor="random-bound-sounds">
         <input
+          id="random-bound-sounds"
           type="checkbox"
           checked={settings.randomSoundPool === 'bound'}
           onChange={(event) =>
