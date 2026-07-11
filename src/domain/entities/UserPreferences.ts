@@ -58,10 +58,7 @@ export const normalizeHotkeySounds = (
     return acc;
   }, {} as HotkeySoundMap);
 
-const normalizeBindingsFromList = (
-  bindings: HotkeyBinding[] | null | undefined,
-  allowMultipleSoundsPerHotkey: boolean
-) =>
+const normalizeBindingsFromList = (bindings?: HotkeyBinding[] | null) =>
   (bindings || []).reduce((acc, binding) => {
     if (
       binding?.key &&
@@ -80,17 +77,12 @@ const normalizeBindingsFromList = (
         ),
       };
 
-      const withoutExistingSound = acc.filter(
-        (existingBinding) =>
-          existingBinding.sound.id !== normalizedBinding.sound.id
-      );
-      const compatibleBindings = allowMultipleSoundsPerHotkey
-        ? withoutExistingSound
-        : withoutExistingSound.filter(
-            (existingBinding) => existingBinding.key !== normalizedBinding.key
-          );
-
-      return compatibleBindings.concat(normalizedBinding);
+      return acc
+        .filter(
+          (existingBinding) =>
+            existingBinding.sound.id !== normalizedBinding.sound.id
+        )
+        .concat(normalizedBinding);
     }
     return acc;
   }, [] as HotkeyBinding[]);
@@ -112,13 +104,9 @@ const normalizeBindingsFromLegacy = (
 export const normalizeBindings = (
   bindings?: HotkeyBinding[] | null,
   legacyHotkeySounds?: HotkeySoundMap | null,
-  legacyHotkeys?: LegacyHotkeyMap | null,
-  allowMultipleSoundsPerHotkey = false
+  legacyHotkeys?: LegacyHotkeyMap | null
 ): HotkeyBinding[] => {
-  const normalizedBindings = normalizeBindingsFromList(
-    bindings,
-    allowMultipleSoundsPerHotkey
-  );
+  const normalizedBindings = normalizeBindingsFromList(bindings);
   if (normalizedBindings.length > 0) {
     return normalizedBindings;
   }
@@ -156,8 +144,7 @@ export class UserPreferences {
     this.bindings = normalizeBindings(
       bindings,
       legacyHotkeySounds,
-      legacyHotkeys,
-      this.hotkeySettings.allowMultipleSoundsPerHotkey
+      legacyHotkeys
     );
   }
 
@@ -207,7 +194,14 @@ export class UserPreferences {
   }
 
   upsertBinding(key: string, sound: HotkeySound): UserPreferences {
-    return this.setBindings(this.bindings.concat({ key, sound }));
+    const withoutCurrentSound = this.bindings.filter(
+      (binding) => binding.sound.id !== sound.id
+    );
+    const compatibleBindings = this.hotkeySettings.allowMultipleSoundsPerHotkey
+      ? withoutCurrentSound
+      : withoutCurrentSound.filter((binding) => binding.key !== key);
+
+    return this.setBindings(compatibleBindings.concat({ key, sound }));
   }
 
   removeBinding(key: string, soundId?: string): UserPreferences {
@@ -237,9 +231,12 @@ export class UserPreferences {
     const remainingBindings = this.bindings.filter(
       (binding) => binding !== bindingToUpdate
     );
+    const compatibleBindings = this.hotkeySettings.allowMultipleSoundsPerHotkey
+      ? remainingBindings
+      : remainingBindings.filter((binding) => binding.key !== nextKey);
 
     return this.setBindings(
-      remainingBindings.concat({
+      compatibleBindings.concat({
         key: nextKey,
         sound: bindingToUpdate.sound,
       })
