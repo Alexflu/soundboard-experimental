@@ -8,12 +8,14 @@ import {
 const path = require('path');
 const { ipcRenderer } = require('electron');
 
+type PreferenceWatcher = (current: fs.Stats, previous: fs.Stats) => void;
+
 class UserPreferenceAdapter {
   path: string;
 
   userPreferences: UserPreferences;
 
-  private preferenceWatcher?: fs.WatchFileListener;
+  private preferenceWatcher?: PreferenceWatcher;
 
   private readonly changeListeners: Array<
     (preferences: UserPreferences) => void
@@ -70,7 +72,7 @@ class UserPreferenceAdapter {
       return;
     }
 
-    const listener: fs.WatchFileListener = (current, previous) => {
+    const listener: PreferenceWatcher = (current, previous) => {
       if (current.mtimeMs === previous.mtimeMs) {
         return;
       }
