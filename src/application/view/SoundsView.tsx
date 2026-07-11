@@ -43,9 +43,7 @@ const SoundsView = ({
     initialPreferences.bindings
   );
   const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
-  const [editingBindingId, setEditingBindingId] = useState<string | null>(
-    null
-  );
+  const [editingBindingId, setEditingBindingId] = useState<string | null>(null);
   const [playingProgress, setPlayingProgress] = useState<
     Record<string, number>
   >({});
@@ -117,11 +115,7 @@ const SoundsView = ({
 
   const setBindingVolume = (binding: HotkeyBinding, value: string) => {
     const volume = Number(value);
-    soundboardDomain.setBindingVolume(
-      binding.key,
-      binding.sound.id,
-      volume
-    );
+    soundboardDomain.setBindingVolume(binding.key, binding.sound.id, volume);
   };
 
   useEffect(() => reloadSounds(), [reloadSounds]);
