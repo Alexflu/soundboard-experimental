@@ -21,7 +21,8 @@ class LocalSoundJson {
   }
 
   toSound(): Sound {
-    const name = path.basename(this.file, path.extname(this.file)) || 'Untitled sound';
+    const name =
+      path.basename(this.file, path.extname(this.file)) || 'Untitled sound';
     const description = path.basename(path.dirname(this.file));
     return new Sound(
       name,
