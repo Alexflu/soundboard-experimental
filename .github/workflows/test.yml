@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
-      - main
+      - Main
   push:
     branches:
-      - main
+      - Main
 
 jobs:
   release:
@@ -31,11 +31,11 @@ jobs:
         run: |
           yarn install --frozen-lockfile --network-timeout 300000
 
-      - name: yarn test
+      - name: Verify app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           yarn package
           yarn lint
-          yarn tsc
-          yarn test
+          yarn tsc --noEmit
+          yarn test --runInBand
