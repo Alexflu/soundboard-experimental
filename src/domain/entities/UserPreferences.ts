@@ -38,8 +38,7 @@ export const normalizeHotkeySettings = (
   allowMultipleSoundsPerHotkey:
     settings?.allowMultipleSoundsPerHotkey ??
     DEFAULT_HOTKEY_SETTINGS.allowMultipleSoundsPerHotkey,
-  randomSoundPool:
-    settings?.randomSoundPool === 'bound' ? 'bound' : 'local',
+  randomSoundPool: settings?.randomSoundPool === 'bound' ? 'bound' : 'local',
 });
 
 export type HotkeySoundMap = Partial<
@@ -198,9 +197,7 @@ export class UserPreferences {
     return this.copy({ bindings });
   }
 
-  setHotkeySettings(
-    hotkeySettings: Partial<HotkeySettings>
-  ): UserPreferences {
+  setHotkeySettings(hotkeySettings: Partial<HotkeySettings>): UserPreferences {
     return this.copy({
       hotkeySettings: {
         ...this.hotkeySettings,
