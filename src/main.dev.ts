@@ -10,7 +10,7 @@
  */
 import 'core-js/stable/index.js';
 import 'regenerator-runtime/runtime.js';
-import path, { dirname } from 'path';
+import path from 'path';
 import {
   app,
   BrowserWindow,
@@ -24,15 +24,9 @@ import {
   session,
 } from 'electron';
 import log from 'electron-log';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import MenuBuilder from './menu.ts';
+import MenuBuilder from './menu';
 
-const require = createRequire(import.meta.url);
 const { autoUpdater } = require('electron-updater');
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export default class AppUpdater {
   constructor() {
@@ -245,7 +239,6 @@ app.on('will-quit', () => {
 app.whenReady().then(createWindow).catch(console.log);
 
 app.on('activate', () => {
-  // On macOS it is common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
+  // On macOS it is common to re-create a window if there are no windows open.
   if (mainWindow === null) createWindow();
 });
