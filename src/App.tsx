@@ -30,9 +30,7 @@ export default function App() {
   const initialPreferences = soundboardDomain.getUserPreferences();
   const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
   const [filters, setFilters] = useState(new Filters(''));
-  const [hotkeys, setHotkeys] = useState<HotkeyMap>(
-    initialPreferences.hotkeys
-  );
+  const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
     initialPreferences.bindings
   );
