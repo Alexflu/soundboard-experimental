@@ -1,14 +1,16 @@
 import fs from 'fs';
-import * as os from 'os';
 import Sound from '../domain/entities/Sound';
 import LocalSoundAdapter from './LocalSoundAdapter';
 import Source from '../domain/entities/Source';
 
 jest.mock('fs');
-jest.mock('os');
 
 describe('LocalSoundAdapter', () => {
   const localSoundAdapter = new LocalSoundAdapter();
+
+  beforeEach(() => {
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+  });
 
   it('should get sounds with linux path', () => {
     const soundsJsonMock = {
@@ -23,7 +25,6 @@ describe('LocalSoundAdapter', () => {
     jest
       .spyOn(fs, 'readFileSync')
       .mockReturnValueOnce(JSON.stringify(soundsJsonMock));
-    jest.spyOn(os, 'platform').mockReturnValueOnce('linux');
 
     const sounds = localSoundAdapter.getSounds('./sounds.json');
 
@@ -49,7 +50,6 @@ describe('LocalSoundAdapter', () => {
     jest
       .spyOn(fs, 'readFileSync')
       .mockReturnValueOnce(JSON.stringify(soundsJsonMock));
-    jest.spyOn(os, 'platform').mockReturnValueOnce('win32');
 
     const sounds = localSoundAdapter.getSounds('./sounds.json');
 
@@ -57,9 +57,21 @@ describe('LocalSoundAdapter', () => {
       new Sound(
         'bien',
         'warcraft',
-        'file://D:\\sounds\\warcraft\\bien.mp3',
+        'file:///D:/sounds/warcraft/bien.mp3',
         Source.LOCAL
       ),
     ]);
+  });
+
+  it('should ignore missing sound files', () => {
+    const soundsJsonMock = {
+      soundboardEntries: [{ file: 'D:\\sounds\\missing.mp3' }],
+    };
+    jest
+      .spyOn(fs, 'readFileSync')
+      .mockReturnValueOnce(JSON.stringify(soundsJsonMock));
+    (fs.existsSync as jest.Mock).mockReturnValueOnce(false);
+
+    expect(localSoundAdapter.getSounds('./sounds.json')).toEqual([]);
   });
 });

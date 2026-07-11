@@ -14,7 +14,10 @@ import {
   DEFAULT_SEARCH_SLOT_HOTKEYS,
   HotkeyMap,
 } from './domain/entities/HotkeyPreferences';
-import { HotkeyBinding } from './domain/entities/UserPreferences';
+import {
+  HotkeyBinding,
+  HotkeySettings,
+} from './domain/entities/UserPreferences';
 
 const { ipcRenderer } = require('electron');
 
@@ -24,14 +27,20 @@ type HotkeyHandler = {
 };
 
 export default function App() {
+  const initialPreferences = soundboardDomain.getUserPreferences();
   const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
   const [filters, setFilters] = useState(new Filters(''));
-  const [hotkeys, setHotkeys] = useState<HotkeyMap>(
-    soundboardDomain.getUserPreferences().hotkeys
-  );
+  const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
-    soundboardDomain.getUserPreferences().bindings
+    initialPreferences.bindings
   );
+  const [hotkeySettings, setHotkeySettings] = useState<HotkeySettings>(
+    initialPreferences.hotkeySettings
+  );
+  const [
+    shortcutRegistrationRevision,
+    setShortcutRegistrationRevision,
+  ] = useState(0);
   const filtersRef = useRef(filters);
 
   const registerSound = useCallback(
@@ -48,6 +57,7 @@ export default function App() {
     },
     [registerSound]
   );
+
   const stopAll = useCallback(
     () => stopAllSounds.forEach((stopSound) => stopSound()),
     [stopAllSounds]
@@ -68,10 +78,22 @@ export default function App() {
   }, [filters]);
 
   useEffect(() => {
+    const onCaptureEnded = () =>
+      setShortcutRegistrationRevision((current) => current + 1);
+    window.addEventListener('soundboard:hotkey-capture-ended', onCaptureEnded);
+    return () =>
+      window.removeEventListener(
+        'soundboard:hotkey-capture-ended',
+        onCaptureEnded
+      );
+  }, []);
+
+  useEffect(() => {
     const unregisterPreferenceWatcher = soundboardDomain.watchUserPreferences(
       (userPreferences) => {
         setHotkeys(userPreferences.hotkeys);
         setBindings(userPreferences.bindings);
+        setHotkeySettings(userPreferences.hotkeySettings);
       }
     );
 
@@ -138,12 +160,24 @@ export default function App() {
       'Cannot play random sound'
     );
 
-    bindings.forEach((binding) => {
+    const activeBindingKeys = Array.from(
+      new Set(
+        bindings
+          .filter(
+            (binding) =>
+              hotkeySettings.pianoKeysEnabled || binding.key.includes('+')
+          )
+          .map((binding) => binding.key)
+      )
+    );
+
+    activeBindingKeys.forEach((bindingKey) => {
       registerAccelerator(
-        binding.key,
+        bindingKey,
         async () => {
-          const player = soundboardDomain.playBoundHotkeySound(binding.key);
-          registerPlayer(player);
+          soundboardDomain
+            .playBoundHotkeySounds(bindingKey)
+            .forEach(registerPlayer);
         },
         'Cannot play bound hotkey sound'
       );
@@ -175,7 +209,14 @@ export default function App() {
         ipcRenderer?.send('shortcut:unregister', accelerator);
       });
     };
-  }, [hotkeys, bindings, registerPlayer, stopAll]);
+  }, [
+    hotkeys,
+    bindings,
+    hotkeySettings,
+    registerPlayer,
+    stopAll,
+    shortcutRegistrationRevision,
+  ]);
 
   return (
     <Router>

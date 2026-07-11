@@ -2,17 +2,27 @@ import { SoundboardDomain } from './SoundboardDomain';
 import Sound from './entities/Sound';
 import Source from './entities/Source';
 import Filters from './entities/Filters';
+import LocalSoundAdapter from '../infrastructure/LocalSoundAdapter';
+import MyInstantSoundAdapter from '../infrastructure/MyInstantSoundAdapter';
+import UserPreferenceAdapter from '../infrastructure/UserPreferenceAdapter';
 
 describe('SoundboardDomainTest', () => {
-  const localSoundAdapter = {
-    getSounds: jest.fn(() => []),
-  };
-  const myInstantSoundAdapter = {
-    getSounds: jest.fn(() => []),
-  };
-  const userPreferenceAdapter = {
+  const getLocalSounds = jest.fn<Sound[], [string]>();
+  const getMyInstantSounds = jest.fn<Promise<Sound[]>, [string]>();
+
+  const localSoundAdapter = ({
+    getSounds: getLocalSounds,
+    addSound: jest.fn(),
+    removeSound: jest.fn(),
+  } as unknown) as LocalSoundAdapter;
+
+  const myInstantSoundAdapter = ({
+    getSounds: getMyInstantSounds,
+  } as unknown) as MyInstantSoundAdapter;
+
+  const userPreferenceAdapter = ({
     getUserPreferences: jest.fn(() => ({ pathToSoundsJson: '' })),
-  };
+  } as unknown) as UserPreferenceAdapter;
 
   const soundboardDomain = new SoundboardDomain(
     localSoundAdapter,
@@ -33,10 +43,8 @@ describe('SoundboardDomainTest', () => {
       'https://lol',
       Source.MYINSTANT
     );
-    localSoundAdapter.getSounds.mockReturnValueOnce([soundLocal]);
-    myInstantSoundAdapter.getSounds.mockReturnValueOnce(
-      Promise.resolve([soundMyInstant])
-    );
+    getLocalSounds.mockReturnValueOnce([soundLocal]);
+    getMyInstantSounds.mockResolvedValueOnce([soundMyInstant]);
 
     const sounds = await soundboardDomain.getSounds(new Filters(''));
 
@@ -68,10 +76,8 @@ describe('SoundboardDomainTest', () => {
       'https://lol',
       Source.MYINSTANT
     );
-    localSoundAdapter.getSounds.mockReturnValueOnce([soundLocal, soundLocal2]);
-    myInstantSoundAdapter.getSounds.mockReturnValueOnce(
-      Promise.resolve([soundMyInstant, soundMyInstant2])
-    );
+    getLocalSounds.mockReturnValueOnce([soundLocal, soundLocal2]);
+    getMyInstantSounds.mockResolvedValueOnce([soundMyInstant, soundMyInstant2]);
 
     const sounds = await soundboardDomain.getSounds(new Filters('sound'));
 

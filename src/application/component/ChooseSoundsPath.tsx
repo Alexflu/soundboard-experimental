@@ -1,5 +1,7 @@
-import React, { BaseSyntheticEvent, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import soundboardDomain from '../../domain/SoundboardDomain';
+
+const { ipcRenderer } = require('electron');
 
 const ChooseSoundsPath = () => {
   const [localSoundJsonPath, setLocalSoundJsonPath] = useState('');
@@ -9,26 +11,32 @@ const ChooseSoundsPath = () => {
     setLocalSoundJsonPath(userPreferences.pathToSoundsJson);
   }, []);
 
-  const fileSelected = (event: BaseSyntheticEvent) => {
-    const file = event.target.files[0];
-    if (file) {
-      setLocalSoundJsonPath(file.path);
-      soundboardDomain.setUserPreferences(
-        soundboardDomain.getUserPreferences().setPathToSoundsJson(file.path)
-      );
+  const chooseFile = async () => {
+    const filePath = await ipcRenderer?.invoke(
+      'dialog:choose-sounds-json',
+      localSoundJsonPath
+    );
+    if (!filePath) {
+      return;
     }
+
+    setLocalSoundJsonPath(filePath);
+    soundboardDomain.setUserPreferences(
+      soundboardDomain.getUserPreferences().setPathToSoundsJson(filePath)
+    );
   };
 
   return (
     <div className="choose-sounds-path">
       <div className="input-container">
-        <span className="label">Choose sound.json path:</span>
-        <input
-          type="file"
-          className="input-file"
-          accept=".json"
-          onChange={fileSelected}
-        />
+        <span className="label">Sound list:</span>
+        <button
+          className="sounds-path-button"
+          type="button"
+          onClick={chooseFile}
+        >
+          Choose file
+        </button>
       </div>
       <span className="current-path">
         <span className="label">Current path: </span>

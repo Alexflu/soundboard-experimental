@@ -5,16 +5,19 @@ import Sound from '../../domain/entities/Sound';
 import Player from '../../domain/entities/Player';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import Source from '../../domain/entities/Source';
+import { HotkeyBinding } from '../../domain/entities/UserPreferences';
 import RemoveSound from './RemoveSound';
 import { captureHotkey } from './hotkeyCapture';
 import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
 
 const SoundComponent = ({
   sound,
+  bindings,
   registerSound,
   reloadSounds,
 }: {
   sound: Sound;
+  bindings: HotkeyBinding[];
   registerSound: (stopSound: () => void) => void;
   reloadSounds: () => void;
 }) => {
@@ -24,6 +27,9 @@ const SoundComponent = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCapturingHotkey, setIsCapturingHotkey] = useState(false);
   const captureCleanup = useRef<(() => void) | null>(null);
+  const soundBindings = bindings.filter(
+    (binding) => binding.sound.id === sound.path
+  );
 
   const stop = () => {
     player.stop();
@@ -76,6 +82,19 @@ const SoundComponent = ({
     []
   );
 
+  const bindingLabel = soundBindings.length
+    ? `Bound: ${soundBindings
+        .map((binding) => toHotkeyDisplay(binding.key))
+        .join(', ')}`
+    : 'Bind hotkey';
+
+  const sourceIcon =
+    sound.source === Source.LOCAL ? (
+      <FaHdd className="source-icon" title={sound.source} />
+    ) : (
+      <FaGlobeAmericas className="source-icon" title={sound.source} />
+    );
+
   return (
     <div className="sound-component animated fadeInRight">
       <div className="action-container">
@@ -89,33 +108,27 @@ const SoundComponent = ({
         <span>{sound.name}</span>
         <span className="description">{sound.description}</span>
       </div>
-      {sound.source === Source.LOCAL ? (
-        <div className="row-end">
+      <div className="row-end">
+        <button
+          className="bind-hotkey-button"
+          type="button"
+          onClick={startCapture}
+          data-hotkey-capture-trigger
+          title={
+            isCapturingHotkey
+              ? 'Press a key combination. Escape or click elsewhere to cancel.'
+              : 'Bind this sound to a global hotkey'
+          }
+        >
+          {isCapturingHotkey ? 'Press keys… (Esc/click cancels)' : bindingLabel}
+        </button>
+        {sound.source === Source.LOCAL && (
           <div className="animated fadeInRight remove-button-container">
             <RemoveSound sound={sound} reloadSounds={reloadSounds} />
           </div>
-          <FaHdd className="source-icon" title={sound.source} />
-        </div>
-      ) : (
-        <div className="row-end">
-          <button
-            className="bind-hotkey-button"
-            type="button"
-            onClick={startCapture}
-            data-hotkey-capture-trigger
-            title={
-              isCapturingHotkey
-                ? 'Press a key combination. Escape or click elsewhere to cancel.'
-                : 'Bind this sound to a global hotkey'
-            }
-          >
-            {isCapturingHotkey
-              ? 'Press keys… (Esc/click cancels)'
-              : 'Bind hotkey'}
-          </button>
-          <FaGlobeAmericas className="source-icon" title={sound.source} />
-        </div>
-      )}
+        )}
+        {sourceIcon}
+      </div>
     </div>
   );
 };

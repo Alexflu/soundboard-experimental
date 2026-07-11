@@ -1,22 +1,47 @@
-.choose-sounds-path .input-container {
-   font-size: 20px;
-   display: flex;
-   align-items: center;
-   margin-bottom: 2px;
+.choose-sounds-path {
+  margin-top: 22px;
 }
 
-.choose-sounds-path .input-container .label{
-   margin-right: 12px;
+.choose-sounds-path .input-container {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.choose-sounds-path .input-container .label {
+  margin-right: 12px;
+}
+
+.sounds-path-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sounds-path-button {
+  padding: 7px 12px;
+  border-radius: 4px;
+  background: #3753ca;
+  color: #fff;
+  cursor: pointer;
+}
+
+.sounds-path-button:hover {
+  background: #4161ec;
 }
 
 .choose-sounds-path .current-path {
-   margin-left: 12px;
-   font-style: italic;
-   font-size: 15px;
+  display: block;
+  margin-left: 12px;
+  font-style: italic;
+  font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
-.choose-sounds-path .current-path .label{
-   font-weight: bold;
-   font-style: normal;
+.choose-sounds-path .current-path .label {
+  font-weight: bold;
+  font-style: normal;
 }
-

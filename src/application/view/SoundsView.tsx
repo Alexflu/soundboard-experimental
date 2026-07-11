@@ -19,10 +19,13 @@ import {
 } from '../../domain/entities/UserPreferences';
 import Source from '../../domain/entities/Source';
 import {
-  DEFAULT_STOP_ALL_HOTKEY,
+  HotkeyMap,
   toHotkeyDisplay,
 } from '../../domain/entities/HotkeyPreferences';
 import { captureHotkey } from '../component/hotkeyCapture';
+
+const getBindingId = (binding: HotkeyBinding) =>
+  `${binding.key}::${binding.sound.id}`;
 
 const SoundsView = ({
   stopAllSounds,
@@ -33,14 +36,14 @@ const SoundsView = ({
   registerSound: (stopSound: () => void) => void;
   setGlobalFilters: (filters: Filters) => void;
 }) => {
+  const initialPreferences = soundboardDomain.getUserPreferences();
   const [sounds, setSounds] = useState([] as Sound[]);
   const [filters, setFilters] = useState(new Filters(''));
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
-    soundboardDomain.getUserPreferences().bindings
+    initialPreferences.bindings
   );
-  const [editingBindingKey, setEditingBindingKey] = useState<string | null>(
-    null
-  );
+  const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
+  const [editingBindingId, setEditingBindingId] = useState<string | null>(null);
   const [playingProgress, setPlayingProgress] = useState<
     Record<string, number>
   >({});
@@ -54,15 +57,20 @@ const SoundsView = ({
         toast.error('Cannot get sounds');
       });
   }, [filters]);
+
   const onFilterUpdated = (newFilters: Filters) => {
     const updated = Filters.fromFilters(newFilters);
     setFilters(updated);
     setGlobalFilters(updated);
   };
+
   const stopAll = () => stopAllSounds.forEach((stopSound) => stopSound());
 
   const playBoundHotkeySound = (binding: HotkeyBinding) => {
-    const player = soundboardDomain.playBoundHotkeySound(binding.key);
+    const player = soundboardDomain.playBoundHotkeySound(
+      binding.key,
+      binding.sound.id
+    );
     if (player) {
       registerSound(() => player.stop());
     }
@@ -70,18 +78,22 @@ const SoundsView = ({
 
   const finishEditingBinding = () => {
     editCaptureCleanup.current = null;
-    setEditingBindingKey(null);
+    setEditingBindingId(null);
   };
 
   const editBindingKey = (binding: HotkeyBinding) => {
     editCaptureCleanup.current?.();
-    setEditingBindingKey(binding.key);
+    setEditingBindingId(getBindingId(binding));
 
     editCaptureCleanup.current = captureHotkey({
       onCapture: (nextKey) => {
         if (
           nextKey !== binding.key &&
-          soundboardDomain.updateBindingKey(binding.key, nextKey)
+          soundboardDomain.updateBindingKey(
+            binding.key,
+            nextKey,
+            binding.sound.id
+          )
         ) {
           toast.success(`Updated hotkey to ${toHotkeyDisplay(nextKey)}`);
         }
@@ -97,20 +109,22 @@ const SoundsView = ({
   };
 
   const removeBinding = (binding: HotkeyBinding) => {
-    soundboardDomain.removeBinding(binding.key);
+    soundboardDomain.removeBinding(binding.key, binding.sound.id);
     toast.success(`Removed hotkey ${toHotkeyDisplay(binding.key)}`);
   };
 
   const setBindingVolume = (binding: HotkeyBinding, value: string) => {
     const volume = Number(value);
-    soundboardDomain.setBindingVolume(binding.key, volume);
+    soundboardDomain.setBindingVolume(binding.key, binding.sound.id, volume);
   };
 
   useEffect(() => reloadSounds(), [reloadSounds]);
+
   useEffect(() => {
     const unregister = soundboardDomain.watchUserPreferences(
       (updatedPreferences: UserPreferences) => {
         setBindings(updatedPreferences.bindings);
+        setHotkeys(updatedPreferences.hotkeys);
       }
     );
     return () => unregister();
@@ -125,26 +139,30 @@ const SoundsView = ({
 
   useEffect(() => {
     const unregisterPlayback = soundboardDomain.onBoundPlayback(
-      ({ key, player }) => {
+      ({ key, soundId, player }) => {
         const audioPlayer = player.player;
         if (!audioPlayer) {
           return;
         }
 
-        setPlayingProgress((current) => ({ ...current, [key]: 0 }));
+        const progressId = `${key}::${soundId}`;
+        setPlayingProgress((current) => ({ ...current, [progressId]: 0 }));
 
         const onTimeUpdate = () => {
           const progress =
             audioPlayer.duration > 0
               ? audioPlayer.currentTime / audioPlayer.duration
               : 0;
-          setPlayingProgress((current) => ({ ...current, [key]: progress }));
+          setPlayingProgress((current) => ({
+            ...current,
+            [progressId]: progress,
+          }));
         };
 
         const clearProgress = () =>
           setPlayingProgress((current) => {
             const updated = { ...current };
-            delete updated[key];
+            delete updated[progressId];
             return updated;
           });
 
@@ -177,80 +195,86 @@ const SoundsView = ({
       </div>
 
       <div className="sounds">
-        {!filters.search && bindings.length > 0 && (
+        {!filters.search && (
           <div className="bound-hotkeys">
-            <span className="bound-hotkeys-title">Bound Sounds</span>
-            {bindings.map((binding) => (
-              <div
-                className="bound-hotkey-row"
-                key={`${binding.key}-${binding.sound.id}`}
-              >
-                <button
-                  type="button"
-                  className="bound-hotkey-play"
-                  onClick={() => playBoundHotkeySound(binding)}
-                >
-                  <FaPlay />
-                </button>
-                <div className="bound-hotkey-content">
-                  <div
-                    className="bound-hotkey-progress"
-                    style={{
-                      transform: `scaleX(${playingProgress[binding.key] || 0})`,
-                    }}
-                  />
-                  <span className="bound-hotkey-sound-name">
-                    {binding.sound.name}
-                  </span>
+            {bindings.length > 0 && (
+              <span className="bound-hotkeys-title">Bound Sounds</span>
+            )}
+            {bindings.map((binding) => {
+              const bindingId = getBindingId(binding);
+              return (
+                <div className="bound-hotkey-row" key={bindingId}>
                   <button
                     type="button"
-                    className="bound-hotkey-label"
-                    onClick={() => editBindingKey(binding)}
-                    data-hotkey-capture-trigger
-                    title={
-                      editingBindingKey === binding.key
-                        ? 'Press a key combination. Escape or click elsewhere to cancel.'
-                        : 'Change this hotkey'
-                    }
+                    className="bound-hotkey-play"
+                    onClick={() => playBoundHotkeySound(binding)}
                   >
-                    {editingBindingKey === binding.key
-                      ? 'Press keys…'
-                      : toHotkeyDisplay(binding.key)}
+                    <FaPlay />
                   </button>
-                  <div className="bound-hotkey-source-control">
-                    {getSourceIcon(binding)}
+                  <div className="bound-hotkey-content">
+                    <div
+                      className="bound-hotkey-progress"
+                      style={{
+                        transform: `scaleX(${playingProgress[bindingId] || 0})`,
+                      }}
+                    />
+                    <span className="bound-hotkey-sound-name">
+                      {binding.sound.name}
+                    </span>
                     <button
                       type="button"
-                      className="bound-hotkey-remove"
-                      onClick={() => removeBinding(binding)}
+                      className="bound-hotkey-label"
+                      onClick={() => editBindingKey(binding)}
+                      data-hotkey-capture-trigger
+                      title={
+                        editingBindingId === bindingId
+                          ? 'Press a key combination. Escape or click elsewhere to cancel.'
+                          : 'Change this hotkey'
+                      }
                     >
-                      <FaTrash />
+                      {editingBindingId === bindingId
+                        ? 'Press keys…'
+                        : toHotkeyDisplay(binding.key)}
                     </button>
+                    <div className="bound-hotkey-source-control">
+                      {getSourceIcon(binding)}
+                      <button
+                        type="button"
+                        className="bound-hotkey-remove"
+                        onClick={() => removeBinding(binding)}
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
                   </div>
+                  <input
+                    className="bound-hotkey-volume"
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={binding.sound.volume}
+                    onChange={(event) =>
+                      setBindingVolume(binding, event.target.value)
+                    }
+                    title="Bound sound volume"
+                  />
                 </div>
-                <input
-                  className="bound-hotkey-volume"
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={binding.sound.volume}
-                  onChange={(event) =>
-                    setBindingVolume(binding, event.target.value)
-                  }
-                  title="Bound sound volume"
-                />
-              </div>
-            ))}
+              );
+            })}
             <span className="bound-hotkeys-helper">
-              Stop All: {toHotkeyDisplay(DEFAULT_STOP_ALL_HOTKEY)}
+              Random Sound: {toHotkeyDisplay(hotkeys.randomSound)}
+            </span>
+            <span className="bound-hotkeys-helper">
+              Stop All: {toHotkeyDisplay(hotkeys.stopAllSounds)}
             </span>
           </div>
         )}
         {sounds.map((sound) => (
           <SoundComponent
-            key={sound.name}
+            key={sound.path || sound.name}
             sound={sound}
+            bindings={bindings}
             registerSound={registerSound}
             reloadSounds={reloadSounds}
           />

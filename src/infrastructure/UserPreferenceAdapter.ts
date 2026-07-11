@@ -8,12 +8,14 @@ import {
 const path = require('path');
 const { ipcRenderer } = require('electron');
 
+type PreferenceWatcher = (current: fs.Stats, previous: fs.Stats) => void;
+
 class UserPreferenceAdapter {
   path: string;
 
   userPreferences: UserPreferences;
 
-  private preferenceWatcher?: fs.WatchFileListener;
+  private preferenceWatcher?: PreferenceWatcher;
 
   private readonly changeListeners: Array<
     (preferences: UserPreferences) => void
@@ -30,8 +32,16 @@ class UserPreferenceAdapter {
   }
 
   set(userPreferences: UserPreferences) {
+    const backupPath = UserPreferenceAdapter.getFilePath(
+      'user-preferences.backup.json'
+    );
+    if (fs.existsSync(this.path)) {
+      fs.copyFileSync(this.path, backupPath);
+    }
+
     this.userPreferences = userPreferences;
-    fs.writeFileSync(this.path, JSON.stringify(this.userPreferences));
+    fs.writeFileSync(this.path, JSON.stringify(this.userPreferences), 'utf8');
+    this.notifyListeners();
   }
 
   watch(onChange: (preferences: UserPreferences) => void): () => void {
@@ -53,12 +63,16 @@ class UserPreferenceAdapter {
     }
   }
 
+  private notifyListeners() {
+    this.changeListeners.forEach((listener) => listener(this.userPreferences));
+  }
+
   private ensurePreferenceWatcher() {
     if (this.preferenceWatcher) {
       return;
     }
 
-    const listener: fs.WatchFileListener = (current, previous) => {
+    const listener: PreferenceWatcher = (current, previous) => {
       if (current.mtimeMs === previous.mtimeMs) {
         return;
       }
@@ -77,7 +91,7 @@ class UserPreferenceAdapter {
       return;
     }
     this.userPreferences = updatedPreferences;
-    this.changeListeners.forEach((listener) => listener(this.userPreferences));
+    this.notifyListeners();
   }
 
   private removeListener(onChange: (preferences: UserPreferences) => void) {
@@ -111,7 +125,8 @@ class UserPreferenceAdapter {
         json.hotkeys,
         json.bindings,
         json.hotkeySounds,
-        json.hotkeys
+        json.hotkeys,
+        json.hotkeySettings
       );
     } catch (error) {
       return null;

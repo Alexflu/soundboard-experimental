@@ -10,10 +10,11 @@
  */
 import 'core-js/stable/index.js';
 import 'regenerator-runtime/runtime.js';
-import path, { dirname } from 'path';
+import path from 'path';
 import {
   app,
   BrowserWindow,
+  dialog,
   globalShortcut,
   ipcMain,
   Menu,
@@ -23,15 +24,9 @@ import {
   session,
 } from 'electron';
 import log from 'electron-log';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import MenuBuilder from './menu.ts';
+import MenuBuilder from './menu';
 
-const require = createRequire(import.meta.url);
 const { autoUpdater } = require('electron-updater');
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export default class AppUpdater {
   constructor() {
@@ -132,6 +127,31 @@ const createWindow = async () => {
     globalShortcut.unregister(accelerator);
   });
 
+  ipcMain.on('shortcut:suspend', (event) => {
+    globalShortcut.unregisterAll();
+    event.returnValue = true;
+  });
+
+  ipcMain.handle(
+    'dialog:choose-sounds-json',
+    async (_event, currentPath?: string) => {
+      const window = mainWindow;
+      if (!window) {
+        return '';
+      }
+
+      const defaultPath = currentPath
+        ? path.dirname(currentPath)
+        : app.getPath('userData');
+      const result = await dialog.showOpenDialog(window, {
+        defaultPath,
+        properties: ['openFile'],
+        filters: [{ name: 'JSON files', extensions: ['json'] }],
+      });
+      return result.canceled ? '' : result.filePaths[0] || '';
+    }
+  );
+
   const logoIco = nativeImage
     .createFromPath(getAssetPath('logo.ico'))
     .resize({ width: 16, height: 16 });
@@ -197,7 +217,7 @@ const createWindow = async () => {
  */
 
 app.on('window-all-closed', () => {
-  // Respect the OSX convention of having the application in memory even
+  // Respect the OSX convention of having application in memory even
   // after all windows have been closed
   if (process.platform !== 'darwin') {
     app.quit();
@@ -212,12 +232,13 @@ app.on('will-quit', () => {
   ipcMain.removeAllListeners('app:getPath');
   ipcMain.removeAllListeners('shortcut:register');
   ipcMain.removeAllListeners('shortcut:unregister');
+  ipcMain.removeAllListeners('shortcut:suspend');
+  ipcMain.removeHandler('dialog:choose-sounds-json');
 });
 
 app.whenReady().then(createWindow).catch(console.log);
 
 app.on('activate', () => {
-  // On macOS it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
+  // On macOS it is common to re-create a window if there are no windows open.
   if (mainWindow === null) createWindow();
 });

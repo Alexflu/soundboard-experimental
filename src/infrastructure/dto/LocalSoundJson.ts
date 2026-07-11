@@ -1,6 +1,7 @@
-import * as os from 'os';
+import path from 'path';
 import Sound from '../../domain/entities/Sound';
 import Source from '../../domain/entities/Source';
+import { LocalSoundJsonData } from './LocalSoundFileJson';
 
 class LocalSoundJson {
   activationKeysNumbers: number[];
@@ -12,23 +13,28 @@ class LocalSoundJson {
     this.file = file;
   }
 
-  static fromLocalSoundJson(soundJson: LocalSoundJson) {
-    return new LocalSoundJson(soundJson.activationKeysNumbers, soundJson.file);
+  static fromLocalSoundJson(soundJson: LocalSoundJsonData) {
+    return new LocalSoundJson(
+      soundJson.activationKeysNumbers || [],
+      soundJson.file
+    );
   }
 
   toSound(): Sound {
-    let nameExtracted: RegExpMatchArray | null;
-    let parentExtracted: RegExpMatchArray | null;
-    if (os.platform() === 'win32') {
-      nameExtracted = /.*\\(.*)\..*$/.exec(this.file);
-      parentExtracted = /.*\\(.*)\\.*$/.exec(this.file);
-    } else {
-      nameExtracted = /.*\/(.*)\..*$/.exec(this.file);
-      parentExtracted = /.*\/(.*)\/.*$/.exec(this.file);
-    }
-    const name = nameExtracted ? nameExtracted[1] : '';
-    const description = parentExtracted ? parentExtracted[1] : '';
-    return new Sound(name, description, `file://${this.file}`, Source.LOCAL);
+    const isWindowsPath = /^[A-Za-z]:[\\/]/.test(this.file);
+    const pathParser = isWindowsPath ? path.win32 : path.posix;
+    const name =
+      pathParser.basename(this.file, pathParser.extname(this.file)) ||
+      'Untitled sound';
+    const description = pathParser.basename(pathParser.dirname(this.file));
+    const normalizedPath = isWindowsPath
+      ? this.file.replace(/\\/g, '/')
+      : this.file;
+    const fileUrl = new URL(
+      isWindowsPath ? `file:///${normalizedPath}` : `file://${normalizedPath}`
+    ).href;
+
+    return new Sound(name, description, fileUrl, Source.LOCAL);
   }
 }
 
