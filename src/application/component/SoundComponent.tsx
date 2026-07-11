@@ -24,17 +24,11 @@ const SoundComponent = ({
   bindings,
   registerSound,
   reloadSounds,
-  canReorder = false,
-  onDragStart,
-  onDrop,
 }: {
   sound: Sound;
   bindings: HotkeyBinding[];
   registerSound: (stopSound: () => void) => void;
   reloadSounds: () => void;
-  canReorder?: boolean;
-  onDragStart?: (event: React.DragEvent<HTMLDivElement>, sound: Sound) => void;
-  onDrop?: (event: React.DragEvent<HTMLDivElement>, sound: Sound) => void;
 }) => {
   const [player] = useState(
     new Player(sound, soundboardDomain.getUserPreferences().audioOutput.id)
@@ -47,6 +41,7 @@ const SoundComponent = ({
   const soundBindings = bindings.filter(
     (binding) => binding.sound.id === sound.path
   );
+  const canReorder = sound.source === Source.LOCAL;
 
   const stop = () => {
     player.stop();
@@ -71,6 +66,19 @@ const SoundComponent = ({
         nextVolume
       );
     }
+  };
+
+  const reorderSound = (sourceSoundPath: string) => {
+    if (!canReorder || !sourceSoundPath) {
+      return;
+    }
+    const preferences = soundboardDomain.getUserPreferences();
+    soundboardDomain.localSoundAdapter.reorderSounds(
+      preferences.pathToSoundsJson,
+      sourceSoundPath,
+      sound.path
+    );
+    reloadSounds();
   };
 
   const bindToHotkey = (bindingKey: string) => {
@@ -142,13 +150,22 @@ const SoundComponent = ({
         canReorder ? ' reorderable' : ''
       }`}
       draggable={canReorder}
-      onDragStart={(event) => onDragStart?.(event, sound)}
+      onDragStart={(event) => {
+        if (canReorder) {
+          event.dataTransfer.setData('text/plain', sound.path);
+          event.dataTransfer.effectAllowed = 'move';
+        }
+      }}
       onDragOver={(event) => {
         if (canReorder) {
           event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
         }
       }}
-      onDrop={(event) => onDrop?.(event, sound)}
+      onDrop={(event) => {
+        event.preventDefault();
+        reorderSound(event.dataTransfer.getData('text/plain'));
+      }}
     >
       <div className="action-container">
         {!isPlaying ? (
@@ -173,6 +190,8 @@ const SoundComponent = ({
           onChange={(event) => updateVolume(Number(event.target.value))}
           title={`Volume ${Math.round(volume * 100)}%`}
           aria-label={`${sound.name} volume`}
+          onMouseDown={(event) => event.stopPropagation()}
+          onDragStart={(event) => event.stopPropagation()}
         />
         <button
           className="bind-hotkey-button"
