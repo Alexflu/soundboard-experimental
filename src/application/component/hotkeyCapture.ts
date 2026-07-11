@@ -82,10 +82,12 @@ export const captureHotkey = ({
 }: CaptureHotkeyOptions): (() => void) => {
   let active = true;
   let timeoutId = 0;
+  let onKeyDown: (event: KeyboardEvent) => void;
+  let onPointerDown: (event: PointerEvent) => void;
 
   ipcRenderer?.sendSync('shortcut:suspend');
 
-  function cleanup() {
+  const cleanup = () => {
     if (!active) {
       return;
     }
@@ -94,17 +96,17 @@ export const captureHotkey = ({
     window.removeEventListener('pointerdown', onPointerDown, true);
     window.clearTimeout(timeoutId);
     window.dispatchEvent(new Event('soundboard:hotkey-capture-ended'));
-  }
+  };
 
-  function cancel(reason: HotkeyCaptureCancelReason) {
+  const cancel = (reason: HotkeyCaptureCancelReason) => {
     if (!active) {
       return;
     }
     cleanup();
     onCancel?.(reason);
-  }
+  };
 
-  function onKeyDown(event: KeyboardEvent) {
+  onKeyDown = (event: KeyboardEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -120,15 +122,15 @@ export const captureHotkey = ({
 
     cleanup();
     onCapture(hotkey);
-  }
+  };
 
-  function onPointerDown(event: PointerEvent) {
+  onPointerDown = (event: PointerEvent) => {
     const target = event.target as Element | null;
     if (target?.closest('[data-hotkey-capture-trigger]')) {
       return;
     }
     cancel('pointer');
-  }
+  };
 
   window.addEventListener('keydown', onKeyDown, true);
   window.addEventListener('pointerdown', onPointerDown, true);
