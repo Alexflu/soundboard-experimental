@@ -37,5 +37,5 @@ jobs:
         run: |
           yarn package
           yarn lint
-          yarn typecheck
+          yarn tsc --noEmit
           yarn test --runInBand
