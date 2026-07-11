@@ -135,17 +135,22 @@ export class SoundboardDomain {
   }
 
   playBoundHotkeySounds(key: string): Player[] {
-    return this.findBindingsByKey(key).map((binding) =>
-      this.playBinding(binding)
-    );
+    const bindings = this.findBindingsByKey(key);
+    const activeBindings = this.getUserPreferences().hotkeySettings
+      .allowMultipleSoundsPerHotkey
+      ? bindings
+      : bindings.slice(-1);
+
+    return activeBindings.map((binding) => this.playBinding(binding));
   }
 
   playBoundHotkeySound(key: string, soundId?: string): Player | null {
-    const binding = this.getUserPreferences().bindings.find(
+    const bindings = this.getUserPreferences().bindings.filter(
       (entry) =>
         entry.key === key &&
         (soundId === undefined || entry.sound.id === soundId)
     );
+    const binding = bindings[bindings.length - 1];
     return binding ? this.playBinding(binding) : null;
   }
 
@@ -209,7 +214,8 @@ export class SoundboardDomain {
   }
 
   findBindingByKey(key: string): HotkeyBinding | null {
-    return this.findBindingsByKey(key)[0] || null;
+    const bindings = this.findBindingsByKey(key);
+    return bindings[bindings.length - 1] || null;
   }
 
   findBindingsByKey(key: string): HotkeyBinding[] {
