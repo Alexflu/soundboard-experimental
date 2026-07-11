@@ -10,6 +10,10 @@ jest.mock('os');
 describe('LocalSoundAdapter', () => {
   const localSoundAdapter = new LocalSoundAdapter();
 
+  beforeEach(() => {
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+  });
+
   it('should get sounds with linux path', () => {
     const soundsJsonMock = {
       soundboardEntries: [
@@ -57,9 +61,21 @@ describe('LocalSoundAdapter', () => {
       new Sound(
         'bien',
         'warcraft',
-        'file://D:\\sounds\\warcraft\\bien.mp3',
+        'file:///D:/sounds/warcraft/bien.mp3',
         Source.LOCAL
       ),
     ]);
+  });
+
+  it('should ignore missing sound files', () => {
+    const soundsJsonMock = {
+      soundboardEntries: [{ file: 'D:\\sounds\\missing.mp3' }],
+    };
+    jest
+      .spyOn(fs, 'readFileSync')
+      .mockReturnValueOnce(JSON.stringify(soundsJsonMock));
+    (fs.existsSync as jest.Mock).mockReturnValueOnce(false);
+
+    expect(localSoundAdapter.getSounds('./sounds.json')).toEqual([]);
   });
 });
