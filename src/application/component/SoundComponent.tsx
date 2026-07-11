@@ -120,9 +120,7 @@ const SoundComponent = ({
               : 'Bind this sound to a global hotkey'
           }
         >
-          {isCapturingHotkey
-            ? 'Press keys… (Esc/click cancels)'
-            : bindingLabel}
+          {isCapturingHotkey ? 'Press keys… (Esc/click cancels)' : bindingLabel}
         </button>
         {sound.source === Source.LOCAL && (
           <div className="animated fadeInRight remove-button-container">
