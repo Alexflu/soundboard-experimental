@@ -76,9 +76,7 @@ class LocalSoundAdapter {
     try {
       const parsed = JSON.parse(rawData.toString());
       return new LocalSoundFileJson(
-        Array.isArray(parsed.soundboardEntries)
-          ? parsed.soundboardEntries
-          : []
+        Array.isArray(parsed.soundboardEntries) ? parsed.soundboardEntries : []
       );
     } catch {
       toast.error(`${this.constructor.name}: Cannot parse sounds json file`);
