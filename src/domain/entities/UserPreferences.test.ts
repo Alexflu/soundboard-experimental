@@ -1,21 +1,30 @@
 import { AudioOutput, HotkeySound, UserPreferences } from './UserPreferences';
 import Source from './Source';
 
+const createPreferences = () =>
+  new UserPreferences(
+    new AudioOutput('default', 'Default'),
+    '/tmp/sounds.json'
+  );
+
+const sound = (id: string) =>
+  new HotkeySound(id, id, `https://example.com/${id}.mp3`);
+
 describe('UserPreferences', () => {
   it('keeps empty bindings by default', () => {
-    const preferences = new UserPreferences(
-      new AudioOutput('default', 'Default'),
-      '/tmp/sounds.json'
-    );
+    expect(createPreferences().bindings).toEqual([]);
+  });
 
-    expect(preferences.bindings).toEqual([]);
+  it('uses safe hotkey behavior defaults', () => {
+    expect(createPreferences().hotkeySettings).toEqual({
+      pianoKeysEnabled: false,
+      allowMultipleSoundsPerHotkey: false,
+      randomSoundPool: 'local',
+    });
   });
 
   it('adds and normalizes binding values', () => {
-    const preferences = new UserPreferences(
-      new AudioOutput('default', 'Default'),
-      '/tmp/sounds.json'
-    ).upsertBinding(
+    const preferences = createPreferences().upsertBinding(
       'Control+F2',
       new HotkeySound('id-1', 'Vine Boom', 'https://example.com/vine-boom.mp3')
     );
@@ -68,28 +77,47 @@ describe('UserPreferences', () => {
     ]);
   });
 
-  it('removes duplicate key and duplicate sound on upsert', () => {
-    const preferences = new UserPreferences(
-      new AudioOutput('default', 'Default'),
-      '/tmp/sounds.json'
-    )
-      .upsertBinding(
-        'Control+F2',
-        new HotkeySound('id-1', 'A', 'https://example.com/a.mp3')
-      )
-      .upsertBinding(
-        'Control+F3',
-        new HotkeySound('id-1', 'A', 'https://example.com/a.mp3')
-      )
-      .upsertBinding(
-        'Control+F3',
-        new HotkeySound('id-2', 'B', 'https://example.com/b.mp3')
-      );
+  it('replaces duplicate keys when multiple sounds are disabled', () => {
+    const preferences = createPreferences()
+      .upsertBinding('Control+F2', sound('id-1'))
+      .upsertBinding('Control+F2', sound('id-2'));
+
+    expect(preferences.bindings).toHaveLength(1);
+    expect(preferences.bindings[0].sound.id).toBe('id-2');
+  });
+
+  it('keeps multiple sounds on one key when enabled', () => {
+    const preferences = createPreferences()
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
+      .upsertBinding('Control+F2', sound('id-1'))
+      .upsertBinding('Control+F2', sound('id-2'));
+
+    expect(preferences.bindings.map((binding) => binding.sound.id)).toEqual([
+      'id-1',
+      'id-2',
+    ]);
+  });
+
+  it('removes only the selected sound from a shared key', () => {
+    const preferences = createPreferences()
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
+      .upsertBinding('Control+F2', sound('id-1'))
+      .upsertBinding('Control+F2', sound('id-2'))
+      .removeBinding('Control+F2', 'id-1');
+
+    expect(preferences.bindings).toHaveLength(1);
+    expect(preferences.bindings[0].sound.id).toBe('id-2');
+  });
+
+  it('keeps one sound bound to only one key', () => {
+    const preferences = createPreferences()
+      .upsertBinding('Control+F2', sound('id-1'))
+      .upsertBinding('Control+F3', sound('id-1'));
 
     expect(preferences.bindings).toEqual([
       {
         key: 'Control+F3',
-        sound: new HotkeySound('id-2', 'B', 'https://example.com/b.mp3'),
+        sound: sound('id-1'),
       },
     ]);
   });
