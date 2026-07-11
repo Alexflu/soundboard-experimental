@@ -2,11 +2,14 @@ import React, { BaseSyntheticEvent } from 'react';
 import { FaPlus } from 'react-icons/fa';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
+const { webUtils } = require('electron');
+
 const AddSound = ({ reloadSounds }: { reloadSounds: () => void }) => {
   const soundSelected = (event: BaseSyntheticEvent) => {
     const file = event.target.files[0];
     if (file) {
-      soundboardDomain.addSound(file.path);
+      const filePath = webUtils?.getPathForFile?.(file) || file.path || '';
+      soundboardDomain.addSound(filePath);
       reloadSounds();
       event.target.value = '';
     }
