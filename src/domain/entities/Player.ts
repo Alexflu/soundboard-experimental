@@ -30,6 +30,7 @@ class Player {
 
   async play() {
     this.player = new Audio(this.sound.path) as HTMLAudioElement;
+    this.player.volume = this.sound.volume;
     if (this.audioOutputDeviceId !== 'default') {
       const playerWithSinkId = this.player as AudioWithSinkId;
       try {
@@ -45,6 +46,14 @@ class Player {
     this.player
       .play()
       .catch((e) => toast.error(`Error when playing sound : ${e}`));
+  }
+
+  setVolume(volume: number) {
+    const normalizedVolume = Math.min(1, Math.max(0, volume));
+    this.sound.volume = normalizedVolume;
+    if (this.player) {
+      this.player.volume = normalizedVolume;
+    }
   }
 
   stop() {
