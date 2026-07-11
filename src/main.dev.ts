@@ -141,10 +141,15 @@ const createWindow = async () => {
   ipcMain.handle(
     'dialog:choose-sounds-json',
     async (_event, currentPath?: string) => {
+      const window = mainWindow;
+      if (!window) {
+        return '';
+      }
+
       const defaultPath = currentPath
         ? path.dirname(currentPath)
         : app.getPath('userData');
-      const result = await dialog.showOpenDialog(mainWindow!, {
+      const result = await dialog.showOpenDialog(window, {
         defaultPath,
         properties: ['openFile'],
         filters: [{ name: 'JSON files', extensions: ['json'] }],
