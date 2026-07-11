@@ -112,7 +112,7 @@ const ChooseAudioOutput = () => {
       <Select<OptionsDevice, false>
         styles={customStyles}
         value={selectedOption}
-        onChange={(value) => {
+        onChange={(value: OptionsDevice | null) => {
           if (value) {
             onSelect(value);
           }
