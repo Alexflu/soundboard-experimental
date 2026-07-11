@@ -30,6 +30,13 @@ class UserPreferenceAdapter {
   }
 
   set(userPreferences: UserPreferences) {
+    const backupPath = UserPreferenceAdapter.getFilePath(
+      'user-preferences.backup.json'
+    );
+    if (fs.existsSync(this.path)) {
+      fs.copyFileSync(this.path, backupPath);
+    }
+
     this.userPreferences = userPreferences;
     fs.writeFileSync(this.path, JSON.stringify(this.userPreferences), 'utf8');
     this.notifyListeners();
