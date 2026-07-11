@@ -37,6 +37,8 @@ export default function App() {
   const [hotkeySettings, setHotkeySettings] = useState<HotkeySettings>(
     initialPreferences.hotkeySettings
   );
+  const [shortcutRegistrationRevision, setShortcutRegistrationRevision] =
+    useState(0);
   const filtersRef = useRef(filters);
 
   const registerSound = useCallback(
@@ -72,6 +74,17 @@ export default function App() {
   useEffect(() => {
     filtersRef.current = filters;
   }, [filters]);
+
+  useEffect(() => {
+    const onCaptureEnded = () =>
+      setShortcutRegistrationRevision((current) => current + 1);
+    window.addEventListener('soundboard:hotkey-capture-ended', onCaptureEnded);
+    return () =>
+      window.removeEventListener(
+        'soundboard:hotkey-capture-ended',
+        onCaptureEnded
+      );
+  }, []);
 
   useEffect(() => {
     const unregisterPreferenceWatcher = soundboardDomain.watchUserPreferences(
@@ -194,7 +207,14 @@ export default function App() {
         ipcRenderer?.send('shortcut:unregister', accelerator);
       });
     };
-  }, [hotkeys, bindings, hotkeySettings, registerPlayer, stopAll]);
+  }, [
+    hotkeys,
+    bindings,
+    hotkeySettings,
+    registerPlayer,
+    stopAll,
+    shortcutRegistrationRevision,
+  ]);
 
   return (
     <Router>
