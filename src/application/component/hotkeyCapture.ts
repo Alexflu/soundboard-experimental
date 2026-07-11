@@ -1,3 +1,5 @@
+const { ipcRenderer } = require('electron');
+
 const MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'Meta']);
 
 const HOTKEY_ALIAS: Record<string, string> = {
@@ -81,6 +83,8 @@ export const captureHotkey = ({
   let active = true;
   let timeoutId = 0;
 
+  ipcRenderer?.sendSync('shortcut:suspend');
+
   function cleanup() {
     if (!active) {
       return;
@@ -89,6 +93,7 @@ export const captureHotkey = ({
     window.removeEventListener('keydown', onKeyDown, true);
     window.removeEventListener('pointerdown', onPointerDown, true);
     window.clearTimeout(timeoutId);
+    window.dispatchEvent(new Event('soundboard:hotkey-capture-ended'));
   }
 
   function cancel(reason: HotkeyCaptureCancelReason) {
