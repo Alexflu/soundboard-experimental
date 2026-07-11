@@ -10,22 +10,39 @@ import RemoveSound from './RemoveSound';
 import { captureHotkey } from './hotkeyCapture';
 import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
 
+const formatDuration = (duration: number | null) => {
+  if (duration === null || !Number.isFinite(duration)) {
+    return '--:--';
+  }
+  const seconds = Math.max(0, Math.round(duration));
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+};
+
 const SoundComponent = ({
   sound,
   bindings,
   registerSound,
   reloadSounds,
+  canReorder = false,
+  onDragStart,
+  onDrop,
 }: {
   sound: Sound;
   bindings: HotkeyBinding[];
   registerSound: (stopSound: () => void) => void;
   reloadSounds: () => void;
+  canReorder?: boolean;
+  onDragStart?: (event: React.DragEvent<HTMLDivElement>, sound: Sound) => void;
+  onDrop?: (event: React.DragEvent<HTMLDivElement>, sound: Sound) => void;
 }) => {
   const [player] = useState(
     new Player(sound, soundboardDomain.getUserPreferences().audioOutput.id)
   );
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCapturingHotkey, setIsCapturingHotkey] = useState(false);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [volume, setVolume] = useState(sound.volume);
   const captureCleanup = useRef<(() => void) | null>(null);
   const soundBindings = bindings.filter(
     (binding) => binding.sound.id === sound.path
@@ -41,6 +58,19 @@ const SoundComponent = ({
     registerSound(stop);
     setIsPlaying(true);
     player.player?.addEventListener('ended', () => setIsPlaying(false));
+  };
+
+  const updateVolume = (nextVolume: number) => {
+    setVolume(nextVolume);
+    player.setVolume(nextVolume);
+    if (sound.source === Source.LOCAL) {
+      const preferences = soundboardDomain.getUserPreferences();
+      soundboardDomain.localSoundAdapter.setSoundVolume(
+        preferences.pathToSoundsJson,
+        sound.path,
+        nextVolume
+      );
+    }
   };
 
   const bindToHotkey = (bindingKey: string) => {
@@ -75,6 +105,17 @@ const SoundComponent = ({
     });
   };
 
+  useEffect(() => {
+    const metadataPlayer = new Audio(sound.path);
+    metadataPlayer.preload = 'metadata';
+    const onMetadata = () => setDuration(metadataPlayer.duration);
+    metadataPlayer.addEventListener('loadedmetadata', onMetadata);
+    return () => {
+      metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
+      metadataPlayer.src = '';
+    };
+  }, [sound.path]);
+
   useEffect(
     () => () => {
       captureCleanup.current?.();
@@ -96,7 +137,19 @@ const SoundComponent = ({
     );
 
   return (
-    <div className="sound-component animated fadeInRight">
+    <div
+      className={`sound-component animated fadeInRight${
+        canReorder ? ' reorderable' : ''
+      }`}
+      draggable={canReorder}
+      onDragStart={(event) => onDragStart?.(event, sound)}
+      onDragOver={(event) => {
+        if (canReorder) {
+          event.preventDefault();
+        }
+      }}
+      onDrop={(event) => onDrop?.(event, sound)}
+    >
       <div className="action-container">
         {!isPlaying ? (
           <FaPlay onClick={() => play()} />
@@ -107,8 +160,20 @@ const SoundComponent = ({
       <div className="name-description-container">
         <span>{sound.name}</span>
         <span className="description">{sound.description}</span>
+        <span className="duration">Duration {formatDuration(duration)}</span>
       </div>
       <div className="row-end">
+        <input
+          className="sound-volume"
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={volume}
+          onChange={(event) => updateVolume(Number(event.target.value))}
+          title={`Volume ${Math.round(volume * 100)}%`}
+          aria-label={`${sound.name} volume`}
+        />
         <button
           className="bind-hotkey-button"
           type="button"
