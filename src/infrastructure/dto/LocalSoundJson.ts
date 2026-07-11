@@ -1,4 +1,5 @@
-import * as os from 'os';
+import path from 'path';
+import { pathToFileURL } from 'url';
 import Sound from '../../domain/entities/Sound';
 import Source from '../../domain/entities/Source';
 
@@ -13,22 +14,21 @@ class LocalSoundJson {
   }
 
   static fromLocalSoundJson(soundJson: LocalSoundJson) {
-    return new LocalSoundJson(soundJson.activationKeysNumbers, soundJson.file);
+    return new LocalSoundJson(
+      soundJson.activationKeysNumbers || [],
+      soundJson.file
+    );
   }
 
   toSound(): Sound {
-    let nameExtracted: RegExpMatchArray | null;
-    let parentExtracted: RegExpMatchArray | null;
-    if (os.platform() === 'win32') {
-      nameExtracted = /.*\\(.*)\..*$/.exec(this.file);
-      parentExtracted = /.*\\(.*)\\.*$/.exec(this.file);
-    } else {
-      nameExtracted = /.*\/(.*)\..*$/.exec(this.file);
-      parentExtracted = /.*\/(.*)\/.*$/.exec(this.file);
-    }
-    const name = nameExtracted ? nameExtracted[1] : '';
-    const description = parentExtracted ? parentExtracted[1] : '';
-    return new Sound(name, description, `file://${this.file}`, Source.LOCAL);
+    const name = path.basename(this.file, path.extname(this.file)) || 'Untitled sound';
+    const description = path.basename(path.dirname(this.file));
+    return new Sound(
+      name,
+      description,
+      pathToFileURL(this.file).href,
+      Source.LOCAL
+    );
   }
 }
 
