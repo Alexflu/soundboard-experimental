@@ -1,6 +1,8 @@
 import React, { BaseSyntheticEvent, useEffect, useState } from 'react';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
+const { webUtils } = require('electron');
+
 const ChooseSoundsPath = () => {
   const [localSoundJsonPath, setLocalSoundJsonPath] = useState('');
 
@@ -11,24 +13,36 @@ const ChooseSoundsPath = () => {
 
   const fileSelected = (event: BaseSyntheticEvent) => {
     const file = event.target.files[0];
-    if (file) {
-      setLocalSoundJsonPath(file.path);
-      soundboardDomain.setUserPreferences(
-        soundboardDomain.getUserPreferences().setPathToSoundsJson(file.path)
-      );
+    if (!file) {
+      return;
     }
+
+    const filePath = webUtils?.getPathForFile?.(file) || file.path || '';
+    if (!filePath) {
+      return;
+    }
+
+    setLocalSoundJsonPath(filePath);
+    soundboardDomain.setUserPreferences(
+      soundboardDomain.getUserPreferences().setPathToSoundsJson(filePath)
+    );
+    event.target.value = '';
   };
 
   return (
     <div className="choose-sounds-path">
       <div className="input-container">
-        <span className="label">Choose sound.json path:</span>
+        <span className="label">Sound list:</span>
         <input
+          id="sounds-path-input"
           type="file"
-          className="input-file"
-          accept=".json"
+          className="sounds-path-input"
+          accept=".json,application/json"
           onChange={fileSelected}
         />
+        <label className="sounds-path-button" htmlFor="sounds-path-input">
+          Choose file
+        </label>
       </div>
       <span className="current-path">
         <span className="label">Current path: </span>
