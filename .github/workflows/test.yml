@@ -31,11 +31,16 @@ jobs:
         run: |
           yarn install --frozen-lockfile --network-timeout 300000
 
-      - name: Verify app
+      - name: Package app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          yarn package
-          yarn lint
-          yarn tsc --noEmit
-          yarn test --runInBand
+        run: yarn package
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Type check
+        run: yarn tsc --noEmit
+
+      - name: Test
+        run: yarn test --runInBand
