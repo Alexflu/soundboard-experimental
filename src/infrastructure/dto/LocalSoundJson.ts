@@ -1,5 +1,4 @@
 import path from 'path';
-import { pathToFileURL } from 'url';
 import Sound from '../../domain/entities/Sound';
 import Source from '../../domain/entities/Source';
 import { LocalSoundJsonData } from './LocalSoundFileJson';
@@ -22,15 +21,20 @@ class LocalSoundJson {
   }
 
   toSound(): Sound {
+    const isWindowsPath = /^[A-Za-z]:[\\/]/.test(this.file);
+    const pathParser = isWindowsPath ? path.win32 : path.posix;
     const name =
-      path.basename(this.file, path.extname(this.file)) || 'Untitled sound';
-    const description = path.basename(path.dirname(this.file));
-    return new Sound(
-      name,
-      description,
-      pathToFileURL(this.file).href,
-      Source.LOCAL
-    );
+      pathParser.basename(this.file, pathParser.extname(this.file)) ||
+      'Untitled sound';
+    const description = pathParser.basename(pathParser.dirname(this.file));
+    const normalizedPath = isWindowsPath
+      ? this.file.replace(/\\/g, '/')
+      : this.file;
+    const fileUrl = new URL(
+      isWindowsPath ? `file:///${normalizedPath}` : `file://${normalizedPath}`
+    ).href;
+
+    return new Sound(name, description, fileUrl, Source.LOCAL);
   }
 }
 
