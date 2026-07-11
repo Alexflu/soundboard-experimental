@@ -9,10 +9,6 @@ on:
     branches:
       - Main
 
-concurrency:
-  group: test-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   release:
     runs-on: ${{ matrix.os }}
