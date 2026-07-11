@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Select, {
-  CSSObjectWithLabel,
-  SingleValue,
-  StylesConfig,
-} from 'react-select';
+import Select from 'react-select';
 import { toast } from 'react-toastify';
 
 import {
@@ -41,6 +37,12 @@ class OptionsDevice {
   }
 }
 
+type SelectStyle = Record<string, unknown>;
+
+type OptionState = {
+  isSelected: boolean;
+};
+
 const ChooseAudioOutput = () => {
   const [optionsDevices, setOptionsDevices] = useState([] as OptionsDevice[]);
   const [selectedOption, setSelectedOption] = useState(
@@ -74,8 +76,8 @@ const ChooseAudioOutput = () => {
     );
   };
 
-  const customStyles: StylesConfig<OptionsDevice, false> = {
-    option: (base: CSSObjectWithLabel, state) => ({
+  const customStyles = {
+    option: (base: SelectStyle, state: OptionState) => ({
       ...base,
       borderBottom: '1px solid #e0e0e0',
       backgroundColor: '#2d2d2d',
@@ -84,7 +86,7 @@ const ChooseAudioOutput = () => {
         backgroundColor: '#3e3e3e',
       },
     }),
-    control: (base: CSSObjectWithLabel) => ({
+    control: (base: SelectStyle) => ({
       ...base,
       backgroundColor: '#2d2d2d',
       borderColor: '#e0e0e0 !important',
@@ -93,11 +95,11 @@ const ChooseAudioOutput = () => {
       width: '45vw',
       marginLeft: '12px',
     }),
-    singleValue: (base: CSSObjectWithLabel) => ({
+    singleValue: (base: SelectStyle) => ({
       ...base,
       color: '#e0e0e0',
     }),
-    menu: (base: CSSObjectWithLabel) => ({
+    menu: (base: SelectStyle) => ({
       ...base,
       backgroundColor: '#2d2d2d',
       border: '1px solid #e0e0e0',
@@ -107,12 +109,14 @@ const ChooseAudioOutput = () => {
   return (
     <div className="choose-audio-output">
       <span className="label">Choose audio output:</span>
-      <Select
+      <Select<OptionsDevice, false>
         styles={customStyles}
         value={selectedOption}
-        onChange={(value: SingleValue<OptionsDevice>) =>
-          onSelect(value as OptionsDevice)
-        }
+        onChange={(value) => {
+          if (value) {
+            onSelect(value);
+          }
+        }}
         options={optionsDevices}
       />
     </div>
