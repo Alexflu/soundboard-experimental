@@ -160,10 +160,7 @@ export class SoundboardDomain {
       toast.error('This hotkey is reserved by Soundboard');
       return false;
     }
-    if (
-      !userPreferences.hotkeySettings.pianoKeysEnabled &&
-      !hasModifier(key)
-    ) {
+    if (!userPreferences.hotkeySettings.pianoKeysEnabled && !hasModifier(key)) {
       toast.error('Enable Piano Keys in Settings to use single-key hotkeys');
       return false;
     }
