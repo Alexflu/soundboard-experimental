@@ -77,10 +77,7 @@ describe('SoundboardDomainTest', () => {
       Source.MYINSTANT
     );
     getLocalSounds.mockReturnValueOnce([soundLocal, soundLocal2]);
-    getMyInstantSounds.mockResolvedValueOnce([
-      soundMyInstant,
-      soundMyInstant2,
-    ]);
+    getMyInstantSounds.mockResolvedValueOnce([soundMyInstant, soundMyInstant2]);
 
     const sounds = await soundboardDomain.getSounds(new Filters('sound'));
 
