@@ -128,6 +128,19 @@ describe('UserPreferences', () => {
     expect(preferences.bindings).toHaveLength(2);
   });
 
+  it('replaces an occupied key only during a new assignment while disabled', () => {
+    const preferences = createPreferences()
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
+      .upsertBinding('Control+F2', sound('id-1'))
+      .upsertBinding('Control+F2', sound('id-2'))
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: false })
+      .upsertBinding('Control+F2', sound('id-3'));
+
+    expect(preferences.bindings).toEqual([
+      { key: 'Control+F2', sound: sound('id-3') },
+    ]);
+  });
+
   it('removes only the selected sound from a shared key', () => {
     const preferences = createPreferences()
       .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
