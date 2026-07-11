@@ -1,10 +1,16 @@
-import React, { BaseSyntheticEvent, useEffect, useState } from 'react';
+import React, {
+  BaseSyntheticEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
 const { webUtils } = require('electron');
 
 const ChooseSoundsPath = () => {
   const [localSoundJsonPath, setLocalSoundJsonPath] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const userPreferences = soundboardDomain.getUserPreferences();
@@ -34,15 +40,19 @@ const ChooseSoundsPath = () => {
       <div className="input-container">
         <span className="label">Sound list:</span>
         <input
-          id="sounds-path-input"
+          ref={inputRef}
           type="file"
           className="sounds-path-input"
           accept=".json,application/json"
           onChange={fileSelected}
         />
-        <label className="sounds-path-button" htmlFor="sounds-path-input">
+        <button
+          className="sounds-path-button"
+          type="button"
+          onClick={() => inputRef.current?.click()}
+        >
           Choose file
-        </label>
+        </button>
       </div>
       <span className="current-path">
         <span className="label">Current path: </span>
