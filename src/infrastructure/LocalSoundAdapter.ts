@@ -1,24 +1,15 @@
 import fs from 'fs';
-import { pathToFileURL } from 'url';
+import path from 'path';
 import { toast } from 'react-toastify';
-import LocalSoundFileJson from './dto/LocalSoundFileJson';
+import LocalSoundFileJson, {
+  LocalSoundJsonData,
+} from './dto/LocalSoundFileJson';
 import LocalSoundJson from './dto/LocalSoundJson';
 import Sound from '../domain/entities/Sound';
 
 class LocalSoundAdapter {
   getSounds(pathToSoundsJson: string): Sound[] {
-    let rawData: string | undefined;
-    try {
-      rawData = fs.readFileSync(pathToSoundsJson, 'utf8');
-    } catch (error) {
-      toast.info(
-        `Cannot read file ${pathToSoundsJson}, please set sounds.json in settings`
-      );
-    }
-
-    const localSoundsFileJson: LocalSoundFileJson = rawData
-      ? this.parseJson(rawData)
-      : new LocalSoundFileJson([]);
+    const localSoundsFileJson = this.readSoundsFile(pathToSoundsJson);
 
     return localSoundsFileJson.soundboardEntries
       .filter(
@@ -40,16 +31,17 @@ class LocalSoundAdapter {
     }
 
     try {
-      const rawData = fs.readFileSync(pathToSoundsJson, 'utf8');
-      const localSoundsFileJson = this.parseJson(rawData);
+      const localSoundsFileJson = this.readSoundsFile(pathToSoundsJson);
+      const pathParser = /^[A-Za-z]:[\\/]/.test(soundPath)
+        ? path.win32
+        : path.posix;
+      const name =
+        pathParser.basename(soundPath, pathParser.extname(soundPath)) ||
+        'Untitled sound';
       localSoundsFileJson.soundboardEntries.push(
-        new LocalSoundJson([], soundPath)
+        new LocalSoundJson([], soundPath, name, 1)
       );
-      fs.writeFileSync(
-        pathToSoundsJson,
-        JSON.stringify(localSoundsFileJson),
-        'utf8'
-      );
+      this.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info(`Cannot add file ${soundPath}`);
     }
@@ -57,19 +49,88 @@ class LocalSoundAdapter {
 
   removeSound(pathToSoundsJson: string, soundPath: string) {
     try {
-      const rawData = fs.readFileSync(pathToSoundsJson, 'utf8');
-      const localSoundsFileJson = this.parseJson(rawData);
+      const localSoundsFileJson = this.readSoundsFile(pathToSoundsJson);
       localSoundsFileJson.soundboardEntries = localSoundsFileJson.soundboardEntries.filter(
-        (sound) => pathToFileURL(sound.file).href !== soundPath
+        (sound) => LocalSoundAdapter.toFileUrl(sound.file) !== soundPath
       );
-      fs.writeFileSync(
-        pathToSoundsJson,
-        JSON.stringify(localSoundsFileJson),
-        'utf8'
-      );
+      this.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info(`Cannot remove file ${soundPath}`);
     }
+  }
+
+  setSoundVolume(
+    pathToSoundsJson: string,
+    soundPath: string,
+    volume: number
+  ) {
+    try {
+      const localSoundsFileJson = this.readSoundsFile(pathToSoundsJson);
+      const normalizedVolume = Math.min(1, Math.max(0, volume));
+      localSoundsFileJson.soundboardEntries.forEach((entry) => {
+        if (LocalSoundAdapter.toFileUrl(entry.file) === soundPath) {
+          entry.volume = normalizedVolume;
+        }
+      });
+      this.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
+    } catch (error) {
+      toast.info('Cannot save sound volume');
+    }
+  }
+
+  reorderSounds(
+    pathToSoundsJson: string,
+    sourceSoundPath: string,
+    targetSoundPath: string
+  ) {
+    if (sourceSoundPath === targetSoundPath) {
+      return;
+    }
+
+    try {
+      const localSoundsFileJson = this.readSoundsFile(pathToSoundsJson);
+      const entries = localSoundsFileJson.soundboardEntries;
+      const sourceIndex = this.findEntryIndex(entries, sourceSoundPath);
+      const targetIndex = this.findEntryIndex(entries, targetSoundPath);
+      if (sourceIndex < 0 || targetIndex < 0) {
+        return;
+      }
+
+      const [movedEntry] = entries.splice(sourceIndex, 1);
+      entries.splice(targetIndex, 0, movedEntry);
+      this.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
+    } catch (error) {
+      toast.info('Cannot reorder sounds');
+    }
+  }
+
+  private findEntryIndex(entries: LocalSoundJsonData[], soundPath: string) {
+    return entries.findIndex(
+      (entry) => LocalSoundAdapter.toFileUrl(entry.file) === soundPath
+    );
+  }
+
+  private readSoundsFile(pathToSoundsJson: string): LocalSoundFileJson {
+    try {
+      const rawData = fs.readFileSync(pathToSoundsJson, 'utf8');
+      return this.parseJson(rawData);
+    } catch (error) {
+      toast.info(
+        `Cannot read file ${pathToSoundsJson}, please set sounds.json in settings`
+      );
+      return new LocalSoundFileJson([]);
+    }
+  }
+
+  private writeSoundsFile(
+    pathToSoundsJson: string,
+    localSoundsFileJson: LocalSoundFileJson
+  ) {
+    fs.writeFileSync(
+      pathToSoundsJson,
+      JSON.stringify(localSoundsFileJson),
+      'utf8'
+    );
   }
 
   private parseJson(rawData: Buffer | string): LocalSoundFileJson {
@@ -82,6 +143,16 @@ class LocalSoundAdapter {
       toast.error(`${this.constructor.name}: Cannot parse sounds json file`);
       return new LocalSoundFileJson([]);
     }
+  }
+
+  private static toFileUrl(filePath: string): string {
+    const isWindowsPath = /^[A-Za-z]:[\\/]/.test(filePath);
+    const normalizedPath = isWindowsPath
+      ? filePath.replace(/\\/g, '/')
+      : filePath;
+    return new URL(
+      isWindowsPath ? `file:///${normalizedPath}` : `file://${normalizedPath}`
+    ).href;
   }
 }
 
