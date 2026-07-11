@@ -1,11 +1,9 @@
 import fs from 'fs';
-import * as os from 'os';
 import Sound from '../domain/entities/Sound';
 import LocalSoundAdapter from './LocalSoundAdapter';
 import Source from '../domain/entities/Source';
 
 jest.mock('fs');
-jest.mock('os');
 
 describe('LocalSoundAdapter', () => {
   const localSoundAdapter = new LocalSoundAdapter();
@@ -27,7 +25,6 @@ describe('LocalSoundAdapter', () => {
     jest
       .spyOn(fs, 'readFileSync')
       .mockReturnValueOnce(JSON.stringify(soundsJsonMock));
-    jest.spyOn(os, 'platform').mockReturnValueOnce('linux');
 
     const sounds = localSoundAdapter.getSounds('./sounds.json');
 
@@ -53,7 +50,6 @@ describe('LocalSoundAdapter', () => {
     jest
       .spyOn(fs, 'readFileSync')
       .mockReturnValueOnce(JSON.stringify(soundsJsonMock));
-    jest.spyOn(os, 'platform').mockReturnValueOnce('win32');
 
     const sounds = localSoundAdapter.getSounds('./sounds.json');
 
