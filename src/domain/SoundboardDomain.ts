@@ -63,6 +63,10 @@ export class SoundboardDomain {
   }
 
   addSound(soundPath: string) {
+    if (!soundPath) {
+      toast.error('Cannot determine the selected audio file path');
+      return;
+    }
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();
     this.localSoundAdapter.addSound(
       userPreferences.pathToSoundsJson,
@@ -79,13 +83,29 @@ export class SoundboardDomain {
   }
 
   async playRandomSound(): Promise<Player | null> {
-    const randomSound = this.getOneRandomLocalSound();
-    if (randomSound) {
-      const player = this.playSound(randomSound);
-      toast.info(`Random sound: ${randomSound.name}`);
+    const preferences = this.getUserPreferences();
+
+    if (preferences.hotkeySettings.randomSoundPool === 'bound') {
+      const binding = this.getOneRandomBinding();
+      if (!binding) {
+        toast.error('No bound sounds are available for random playback');
+        return null;
+      }
+
+      const player = this.playBinding(binding);
+      toast.info(`Random sound: ${binding.sound.name}`);
       return player;
     }
-    return null;
+
+    const randomSound = this.getOneRandomLocalSound();
+    if (!randomSound) {
+      toast.error('No playable local sounds are available');
+      return null;
+    }
+
+    const player = this.playSound(randomSound);
+    toast.info(`Random sound: ${randomSound.name}`);
+    return player;
   }
 
   async playLocalSoundByIndex(
@@ -105,30 +125,35 @@ export class SoundboardDomain {
     return null;
   }
 
-  playBoundHotkeySound(key: string): Player | null {
-    const binding = this.findBindingByKey(key);
-    if (!binding) {
-      return null;
-    }
+  playBoundHotkeySounds(key: string): Player[] {
+    return this.findBindingsByKey(key).map((binding) =>
+      this.playBinding(binding)
+    );
+  }
 
-    const player = this.playSound(
-      new Sound(binding.sound.name, '', binding.sound.url, binding.sound.source)
+  playBoundHotkeySound(key: string, soundId?: string): Player | null {
+    const binding = this.getUserPreferences().bindings.find(
+      (entry) =>
+        entry.key === key &&
+        (soundId === undefined || entry.sound.id === soundId)
     );
-    if (player.player) {
-      player.player.volume = binding.sound.volume;
-    }
-    this.boundPlaybackListeners.forEach((listener) =>
-      listener({ key, player, soundId: binding.sound.id })
-    );
-    return player;
+    return binding ? this.playBinding(binding) : null;
   }
 
   bindSoundToHotkey(key: string, sound: Sound): boolean {
     const userPreferences = this.getUserPreferences();
-    if (key === userPreferences.hotkeys.stopAllSounds) {
-      toast.error('This hotkey is reserved for Stop All');
+    if (this.isReservedHotkey(key, userPreferences)) {
+      toast.error('This hotkey is reserved by Soundboard');
       return false;
     }
+    if (
+      !userPreferences.hotkeySettings.pianoKeysEnabled &&
+      !this.hasModifier(key)
+    ) {
+      toast.error('Enable Piano Keys in Settings to use single-key hotkeys');
+      return false;
+    }
+
     this.setUserPreferences(
       userPreferences.upsertBinding(
         key,
@@ -138,33 +163,49 @@ export class SoundboardDomain {
     return true;
   }
 
-  removeBinding(key: string) {
-    this.setUserPreferences(this.getUserPreferences().removeBinding(key));
+  removeBinding(key: string, soundId?: string) {
+    this.setUserPreferences(
+      this.getUserPreferences().removeBinding(key, soundId)
+    );
   }
 
-  updateBindingKey(previousKey: string, nextKey: string): boolean {
+  updateBindingKey(
+    previousKey: string,
+    nextKey: string,
+    soundId?: string
+  ): boolean {
     const userPreferences = this.getUserPreferences();
-    if (nextKey === userPreferences.hotkeys.stopAllSounds) {
-      toast.error('This hotkey is reserved for Stop All');
+    if (this.isReservedHotkey(nextKey, userPreferences)) {
+      toast.error('This hotkey is reserved by Soundboard');
       return false;
     }
+    if (
+      !userPreferences.hotkeySettings.pianoKeysEnabled &&
+      !this.hasModifier(nextKey)
+    ) {
+      toast.error('Enable Piano Keys in Settings to use single-key hotkeys');
+      return false;
+    }
+
     this.setUserPreferences(
-      userPreferences.updateBindingKey(previousKey, nextKey)
+      userPreferences.updateBindingKey(previousKey, nextKey, soundId)
     );
     return true;
   }
 
-  setBindingVolume(key: string, volume: number) {
+  setBindingVolume(key: string, soundId: string, volume: number) {
     this.setUserPreferences(
-      this.getUserPreferences().setBindingVolume(key, volume)
+      this.getUserPreferences().setBindingVolume(key, soundId, volume)
     );
   }
 
   findBindingByKey(key: string): HotkeyBinding | null {
-    return (
-      this.getUserPreferences().bindings.find(
-        (binding) => binding.key === key
-      ) || null
+    return this.findBindingsByKey(key)[0] || null;
+  }
+
+  findBindingsByKey(key: string): HotkeyBinding[] {
+    return this.getUserPreferences().bindings.filter(
+      (binding) => binding.key === key
     );
   }
 
@@ -184,6 +225,23 @@ export class SoundboardDomain {
     };
   }
 
+  private playBinding(binding: HotkeyBinding): Player {
+    const player = this.playSound(
+      new Sound(binding.sound.name, '', binding.sound.url, binding.sound.source)
+    );
+    if (player.player) {
+      player.player.volume = binding.sound.volume;
+    }
+    this.boundPlaybackListeners.forEach((listener) =>
+      listener({
+        key: binding.key,
+        player,
+        soundId: binding.sound.id,
+      })
+    );
+    return player;
+  }
+
   private playSound(sound: Sound): Player {
     const audioOutput = this.getUserPreferences().audioOutput.id;
     const player = new Player(sound, audioOutput);
@@ -193,13 +251,36 @@ export class SoundboardDomain {
 
   private getOneRandomLocalSound(): Sound | null {
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();
-    const localSounds = this.localSoundAdapter.getSounds(
-      userPreferences.pathToSoundsJson
+    const localSounds = this.localSoundAdapter
+      .getSounds(userPreferences.pathToSoundsJson)
+      .filter((sound) => Boolean(sound.name && sound.path));
+
+    return localSounds.length > 0
+      ? localSounds[Math.floor(Math.random() * localSounds.length)]
+      : null;
+  }
+
+  private getOneRandomBinding(): HotkeyBinding | null {
+    const bindings = this.getUserPreferences().bindings.filter(
+      (binding) => Boolean(binding.sound.name && binding.sound.url)
     );
-    if (localSounds && localSounds.length > 0) {
-      return localSounds[Math.floor(Math.random() * localSounds.length)];
-    }
-    return null;
+    return bindings.length > 0
+      ? bindings[Math.floor(Math.random() * bindings.length)]
+      : null;
+  }
+
+  private hasModifier(key: string): boolean {
+    return key.includes('+');
+  }
+
+  private isReservedHotkey(
+    key: string,
+    userPreferences: UserPreferences
+  ): boolean {
+    return (
+      key === userPreferences.hotkeys.stopAllSounds ||
+      key === userPreferences.hotkeys.randomSound
+    );
   }
 }
 
