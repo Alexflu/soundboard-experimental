@@ -98,6 +98,36 @@ describe('UserPreferences', () => {
     ]);
   });
 
+  it('preserves shared bindings when multiple sounds are disabled', () => {
+    const preferences = createPreferences()
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
+      .upsertBinding('Control+F2', sound('id-1'))
+      .upsertBinding('Control+F2', sound('id-2'))
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: false });
+
+    expect(preferences.bindings.map((binding) => binding.sound.id)).toEqual([
+      'id-1',
+      'id-2',
+    ]);
+  });
+
+  it('preserves shared bindings when loading saved preferences', () => {
+    const preferences = new UserPreferences(
+      new AudioOutput('default', 'Default'),
+      '/tmp/sounds.json',
+      {},
+      [
+        { key: 'Control+F2', sound: sound('id-1') },
+        { key: 'Control+F2', sound: sound('id-2') },
+      ],
+      undefined,
+      undefined,
+      { allowMultipleSoundsPerHotkey: false }
+    );
+
+    expect(preferences.bindings).toHaveLength(2);
+  });
+
   it('removes only the selected sound from a shared key', () => {
     const preferences = createPreferences()
       .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
