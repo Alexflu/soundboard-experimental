@@ -6,6 +6,14 @@
   align-items: center;
 }
 
+.sound-component.reorderable {
+  cursor: grab;
+}
+
+.sound-component.reorderable:active {
+  cursor: grabbing;
+}
+
 .sound-component .action-container {
   margin-right: 14px;
   color: #008000;
@@ -21,16 +29,29 @@
   display: flex;
   flex-direction: column;
   font-weight: bold;
+  min-width: 0;
 }
 
-.sound-component .name-description-container .description {
+.sound-component .name-description-container .description,
+.sound-component .name-description-container .duration {
   font-size: 13px;
   font-weight: normal;
 }
+
+.sound-component .name-description-container .duration {
+  color: #bdbdbd;
+}
+
 .sound-component .row-end {
   margin-left: auto;
   display: flex;
   align-items: center;
+}
+
+.sound-component .sound-volume {
+  width: 110px;
+  margin-right: 12px;
+  cursor: pointer;
 }
 
 .sound-component .source-icon {
@@ -41,6 +62,7 @@
   display: none;
   margin-right: 20px;
 }
+
 .sound-component:hover .remove-button-container {
   display: block;
 }
