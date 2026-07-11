@@ -100,9 +100,14 @@ class UserPreferenceAdapter {
   private static tryParseDataFile(filePath: string): UserPreferences | null {
     try {
       const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const soundsPath =
+        json.pathToSoundsJson ||
+        UserPreferenceAdapter.getOrCreateEmptySoundsListFile();
+      UserPreferenceAdapter.repairDefaultSoundsListFile(soundsPath);
+
       return new UserPreferences(
         json.audioOutput,
-        json.pathToSoundsJson,
+        soundsPath,
         json.hotkeys,
         json.bindings,
         json.hotkeySounds,
@@ -115,16 +120,38 @@ class UserPreferenceAdapter {
 
   private static getOrCreateEmptySoundsListFile(): string {
     const filePath = UserPreferenceAdapter.getFilePath('sounds.json');
-    if (!fs.existsSync(filePath)) {
-      const defaultSoundPath = app?.isPackaged
-        ? path.join(process.resourcesPath, 'assets', 'oof.mp3')
-        : path.join(__dirname, '../assets', 'oof.mp3');
-      fs.writeFileSync(
-        filePath,
-        `{"soundboardEntries": [{"file": "${defaultSoundPath}"}]}`
-      );
-    }
+    UserPreferenceAdapter.repairDefaultSoundsListFile(filePath);
     return filePath;
+  }
+
+  private static repairDefaultSoundsListFile(filePath: string) {
+    const defaultFilePath = UserPreferenceAdapter.getFilePath('sounds.json');
+    if (path.resolve(filePath) !== path.resolve(defaultFilePath)) {
+      return;
+    }
+
+    try {
+      const existing = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (!Array.isArray(existing.soundboardEntries)) {
+        throw new Error('Invalid sounds file');
+      }
+    } catch (error) {
+      UserPreferenceAdapter.writeDefaultSoundsListFile(defaultFilePath);
+    }
+  }
+
+  private static writeDefaultSoundsListFile(filePath: string) {
+    const defaultSoundPath = app?.isPackaged
+      ? path.join(process.resourcesPath, 'assets', 'oof.mp3')
+      : path.join(__dirname, '../assets', 'oof.mp3');
+
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({
+        soundboardEntries: [{ file: defaultSoundPath }],
+      }),
+      'utf8'
+    );
   }
 
   private static getFilePath(name: string): string {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FaGlobeAmericas,
   FaHdd,
@@ -22,7 +22,7 @@ import {
   DEFAULT_STOP_ALL_HOTKEY,
   toHotkeyDisplay,
 } from '../../domain/entities/HotkeyPreferences';
-import { getHotkeyFromEvent } from '../component/hotkeyCapture';
+import { captureHotkey } from '../component/hotkeyCapture';
 
 const SoundsView = ({
   stopAllSounds,
@@ -38,9 +38,13 @@ const SoundsView = ({
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
     soundboardDomain.getUserPreferences().bindings
   );
+  const [editingBindingKey, setEditingBindingKey] = useState<string | null>(
+    null
+  );
   const [playingProgress, setPlayingProgress] = useState<
     Record<string, number>
   >({});
+  const editCaptureCleanup = useRef<(() => void) | null>(null);
 
   const reloadSounds = useCallback(() => {
     soundboardDomain
@@ -64,26 +68,32 @@ const SoundsView = ({
     }
   };
 
+  const finishEditingBinding = () => {
+    editCaptureCleanup.current = null;
+    setEditingBindingKey(null);
+  };
+
   const editBindingKey = (binding: HotkeyBinding) => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
+    editCaptureCleanup.current?.();
+    setEditingBindingKey(binding.key);
 
-      if (event.key === 'Escape') {
-        window.removeEventListener('keydown', onKeyDown, true);
-        return;
-      }
-
-      const nextKey = getHotkeyFromEvent(event);
-      if (!nextKey || nextKey === binding.key) {
-        return;
-      }
-
-      soundboardDomain.updateBindingKey(binding.key, nextKey);
-      toast.success(`Updated hotkey to ${toHotkeyDisplay(nextKey)}`);
-      window.removeEventListener('keydown', onKeyDown, true);
-    };
-    window.addEventListener('keydown', onKeyDown, true);
+    editCaptureCleanup.current = captureHotkey({
+      onCapture: (nextKey) => {
+        if (
+          nextKey !== binding.key &&
+          soundboardDomain.updateBindingKey(binding.key, nextKey)
+        ) {
+          toast.success(`Updated hotkey to ${toHotkeyDisplay(nextKey)}`);
+        }
+        finishEditingBinding();
+      },
+      onCancel: (reason) => {
+        finishEditingBinding();
+        if (reason === 'timeout') {
+          toast.info('Hotkey binding timed out');
+        }
+      },
+    });
   };
 
   const removeBinding = (binding: HotkeyBinding) => {
@@ -105,6 +115,13 @@ const SoundsView = ({
     );
     return () => unregister();
   }, []);
+
+  useEffect(
+    () => () => {
+      editCaptureCleanup.current?.();
+    },
+    []
+  );
 
   useEffect(() => {
     const unregisterPlayback = soundboardDomain.onBoundPlayback(
@@ -189,8 +206,16 @@ const SoundsView = ({
                     type="button"
                     className="bound-hotkey-label"
                     onClick={() => editBindingKey(binding)}
+                    data-hotkey-capture-trigger
+                    title={
+                      editingBindingKey === binding.key
+                        ? 'Press a key combination. Escape or click elsewhere to cancel.'
+                        : 'Change this hotkey'
+                    }
                   >
-                    {toHotkeyDisplay(binding.key)}
+                    {editingBindingKey === binding.key
+                      ? 'Press keys…'
+                      : toHotkeyDisplay(binding.key)}
                   </button>
                   <div className="bound-hotkey-source-control">
                     {getSourceIcon(binding)}
@@ -218,8 +243,7 @@ const SoundsView = ({
               </div>
             ))}
             <span className="bound-hotkeys-helper">
-              Stop all hotkey default:{' '}
-              {toHotkeyDisplay(DEFAULT_STOP_ALL_HOTKEY)}
+              Stop All: {toHotkeyDisplay(DEFAULT_STOP_ALL_HOTKEY)}
             </span>
           </div>
         )}

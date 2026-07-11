@@ -123,11 +123,11 @@ export class SoundboardDomain {
     return player;
   }
 
-  bindSoundToHotkey(key: string, sound: Sound) {
+  bindSoundToHotkey(key: string, sound: Sound): boolean {
     const userPreferences = this.getUserPreferences();
     if (key === userPreferences.hotkeys.stopAllSounds) {
       toast.error('This hotkey is reserved for Stop All');
-      return;
+      return false;
     }
     this.setUserPreferences(
       userPreferences.upsertBinding(
@@ -135,21 +135,23 @@ export class SoundboardDomain {
         new HotkeySound(sound.path, sound.name, sound.path, sound.source)
       )
     );
+    return true;
   }
 
   removeBinding(key: string) {
     this.setUserPreferences(this.getUserPreferences().removeBinding(key));
   }
 
-  updateBindingKey(previousKey: string, nextKey: string) {
+  updateBindingKey(previousKey: string, nextKey: string): boolean {
     const userPreferences = this.getUserPreferences();
     if (nextKey === userPreferences.hotkeys.stopAllSounds) {
       toast.error('This hotkey is reserved for Stop All');
-      return;
+      return false;
     }
     this.setUserPreferences(
       userPreferences.updateBindingKey(previousKey, nextKey)
     );
+    return true;
   }
 
   setBindingVolume(key: string, volume: number) {
