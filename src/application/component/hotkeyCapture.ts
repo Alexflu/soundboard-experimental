@@ -81,7 +81,7 @@ export const captureHotkey = ({
   let active = true;
   let timeoutId = 0;
 
-  const cleanup = () => {
+  function cleanup() {
     if (!active) {
       return;
     }
@@ -89,17 +89,17 @@ export const captureHotkey = ({
     window.removeEventListener('keydown', onKeyDown, true);
     window.removeEventListener('pointerdown', onPointerDown, true);
     window.clearTimeout(timeoutId);
-  };
+  }
 
-  const cancel = (reason: HotkeyCaptureCancelReason) => {
+  function cancel(reason: HotkeyCaptureCancelReason) {
     if (!active) {
       return;
     }
     cleanup();
     onCancel?.(reason);
-  };
+  }
 
-  const onKeyDown = (event: KeyboardEvent) => {
+  function onKeyDown(event: KeyboardEvent) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -115,15 +115,15 @@ export const captureHotkey = ({
 
     cleanup();
     onCapture(hotkey);
-  };
+  }
 
-  const onPointerDown = (event: PointerEvent) => {
+  function onPointerDown(event: PointerEvent) {
     const target = event.target as Element | null;
     if (target?.closest('[data-hotkey-capture-trigger]')) {
       return;
     }
     cancel('pointer');
-  };
+  }
 
   window.addEventListener('keydown', onKeyDown, true);
   window.addEventListener('pointerdown', onPointerDown, true);
