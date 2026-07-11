@@ -28,8 +28,13 @@ jobs:
           cache: yarn
 
       - name: yarn install
+        shell: pwsh
         run: |
-          yarn install --frozen-lockfile --network-timeout 300000
+          yarn install --frozen-lockfile --network-timeout 300000 *> install.log
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content install.log
+            exit $LASTEXITCODE
+          }
 
       - name: Lint
         run: yarn lint
