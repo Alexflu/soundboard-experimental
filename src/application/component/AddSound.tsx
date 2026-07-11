@@ -1,10 +1,12 @@
-import React, { BaseSyntheticEvent } from 'react';
+import React, { BaseSyntheticEvent, useRef } from 'react';
 import { FaPlus } from 'react-icons/fa';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
 const { webUtils } = require('electron');
 
 const AddSound = ({ reloadSounds }: { reloadSounds: () => void }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const soundSelected = (event: BaseSyntheticEvent) => {
     const file = event.target.files[0];
     if (file) {
@@ -18,20 +20,21 @@ const AddSound = ({ reloadSounds }: { reloadSounds: () => void }) => {
   return (
     <div className="add-sound-container">
       <input
-        id="add-sound-input"
+        ref={inputRef}
         type="file"
         className="add-sound-input"
         accept="audio/*"
         onChange={soundSelected}
       />
-      <label
-        htmlFor="add-sound-input"
+      <button
+        type="button"
         className="add-sound-button"
         title="Add audio file"
         aria-label="Add audio file"
+        onClick={() => inputRef.current?.click()}
       >
         <FaPlus />
-      </label>
+      </button>
     </div>
   );
 };
