@@ -11,6 +11,15 @@ import Player from './entities/Player';
 import MyInstantSoundAdapter from '../infrastructure/MyInstantSoundAdapter';
 import Filters from './entities/Filters';
 
+const hasModifier = (key: string): boolean => key.includes('+');
+
+const isReservedHotkey = (
+  key: string,
+  userPreferences: UserPreferences
+): boolean =>
+  key === userPreferences.hotkeys.stopAllSounds ||
+  key === userPreferences.hotkeys.randomSound;
+
 export class SoundboardDomain {
   localSoundAdapter: LocalSoundAdapter;
 
@@ -142,13 +151,13 @@ export class SoundboardDomain {
 
   bindSoundToHotkey(key: string, sound: Sound): boolean {
     const userPreferences = this.getUserPreferences();
-    if (this.isReservedHotkey(key, userPreferences)) {
+    if (isReservedHotkey(key, userPreferences)) {
       toast.error('This hotkey is reserved by Soundboard');
       return false;
     }
     if (
       !userPreferences.hotkeySettings.pianoKeysEnabled &&
-      !this.hasModifier(key)
+      !hasModifier(key)
     ) {
       toast.error('Enable Piano Keys in Settings to use single-key hotkeys');
       return false;
@@ -175,13 +184,13 @@ export class SoundboardDomain {
     soundId?: string
   ): boolean {
     const userPreferences = this.getUserPreferences();
-    if (this.isReservedHotkey(nextKey, userPreferences)) {
+    if (isReservedHotkey(nextKey, userPreferences)) {
       toast.error('This hotkey is reserved by Soundboard');
       return false;
     }
     if (
       !userPreferences.hotkeySettings.pianoKeysEnabled &&
-      !this.hasModifier(nextKey)
+      !hasModifier(nextKey)
     ) {
       toast.error('Enable Piano Keys in Settings to use single-key hotkeys');
       return false;
@@ -261,26 +270,12 @@ export class SoundboardDomain {
   }
 
   private getOneRandomBinding(): HotkeyBinding | null {
-    const bindings = this.getUserPreferences().bindings.filter(
-      (binding) => Boolean(binding.sound.name && binding.sound.url)
+    const bindings = this.getUserPreferences().bindings.filter((binding) =>
+      Boolean(binding.sound.name && binding.sound.url)
     );
     return bindings.length > 0
       ? bindings[Math.floor(Math.random() * bindings.length)]
       : null;
-  }
-
-  private hasModifier(key: string): boolean {
-    return key.includes('+');
-  }
-
-  private isReservedHotkey(
-    key: string,
-    userPreferences: UserPreferences
-  ): boolean {
-    return (
-      key === userPreferences.hotkeys.stopAllSounds ||
-      key === userPreferences.hotkeys.randomSound
-    );
   }
 }
 
