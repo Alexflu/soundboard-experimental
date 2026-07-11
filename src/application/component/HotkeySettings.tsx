@@ -56,7 +56,9 @@ const HotkeySettings = () => {
         />
         <span>
           <strong>Multiple sounds per hotkey</strong>
-          <small>Play every sound assigned to the same key together.</small>
+          <small>
+            Shared bindings are preserved when off; only the newest one plays.
+          </small>
         </span>
       </label>
 
