@@ -59,6 +59,10 @@
   cursor: pointer;
 }
 
+.sounds-view .bound-hotkey-play .stop {
+  color: #c60000;
+}
+
 .sounds-view .bound-hotkey-content {
   position: relative;
   display: flex;
@@ -85,6 +89,11 @@
 .sounds-view .bound-hotkey-sound-name {
   position: relative;
   z-index: 1;
+  cursor: grab;
+}
+
+.sounds-view .bound-hotkey-sound-name:active {
+  cursor: grabbing;
 }
 
 .sounds-view .bound-hotkey-label {
@@ -128,6 +137,14 @@
 
 .sounds-view .bound-hotkey-source-control:hover .bound-hotkey-source-icon {
   display: none;
+}
+
+.sounds-view .bound-hotkey-duration {
+  min-width: 42px;
+  margin-left: 8px;
+  color: #bdbdbd;
+  font-size: 13px;
+  text-align: right;
 }
 
 .sounds-view .bound-hotkey-volume {

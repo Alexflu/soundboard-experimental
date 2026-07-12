@@ -1,6 +1,8 @@
 export type LocalSoundJsonData = {
-  activationKeysNumbers: number[];
+  activationKeysNumbers?: number[];
   file: string;
+  name?: string;
+  volume?: number;
 };
 
 export default class LocalSoundFileJson {

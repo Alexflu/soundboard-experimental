@@ -1,22 +1,33 @@
 .filters-component {
-   display: flex;
-   align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 .filters-component .search-icon {
-   margin-right: 8px;
-   font-size: 24px;
+  margin-right: 8px;
+  font-size: 24px;
 }
 
 .filters-component .input-search {
-   height: 30px;
-   font-size: 17px;
-   background-color: #3a3a3a;
-   border: 1px solid white;
-   color: white;
-   padding-left: 6px;
+  height: 30px;
+  font-size: 17px;
+  background-color: #3a3a3a;
+  border: 1px solid white;
+  color: white;
+  padding-left: 6px;
+  padding-right: 34px;
 }
 
 .filters-component .input-search::placeholder {
-   color: white;
+  color: white;
+}
+
+.filters-component .clear-search-button {
+  width: 30px;
+  height: 30px;
+  margin-left: -31px;
+  border: 0;
+  background: transparent;
+  color: #e0e0e0;
+  cursor: pointer;
 }
