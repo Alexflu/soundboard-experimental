@@ -244,18 +244,17 @@ export class UserPreferences {
     );
   }
 
-  reorderBindings(sourceSoundId: string, targetSoundId: string): UserPreferences {
+  reorderBindings(
+    sourceSoundId: string,
+    targetSoundId: string
+  ): UserPreferences {
     const sourceIndex = this.bindings.findIndex(
       (binding) => binding.sound.id === sourceSoundId
     );
     const targetIndex = this.bindings.findIndex(
       (binding) => binding.sound.id === targetSoundId
     );
-    if (
-      sourceIndex < 0 ||
-      targetIndex < 0 ||
-      sourceIndex === targetIndex
-    ) {
+    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
       return this;
     }
 
