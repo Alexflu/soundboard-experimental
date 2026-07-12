@@ -45,7 +45,8 @@ export const LEGACY_SEARCH_SLOT_ACTIONS = [
   'searchSlot7',
 ] as const;
 
-export type LegacySearchSlotAction = typeof LEGACY_SEARCH_SLOT_ACTIONS[number];
+export type LegacySearchSlotAction =
+  (typeof LEGACY_SEARCH_SLOT_ACTIONS)[number];
 
 export type LegacyHotkeyMap = Partial<
   Record<HotkeyAction | LegacySearchSlotAction, string>

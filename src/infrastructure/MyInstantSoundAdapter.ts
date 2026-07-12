@@ -12,6 +12,8 @@ class MyInstantSoundAdapter {
   async getSounds(search: string): Promise<Sound[]> {
     try {
       if (search != null && search.length >= 2) {
+        // Await keeps request rejection inside this try/catch.
+        // eslint-disable-next-line @typescript-eslint/return-await
         return await fetch(
           `${this.myInstantApiUrl}?name=${encodeURI(search)}&format=json`
         )

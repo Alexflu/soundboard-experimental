@@ -37,10 +37,8 @@ export default function App() {
   const [hotkeySettings, setHotkeySettings] = useState<HotkeySettings>(
     initialPreferences.hotkeySettings
   );
-  const [
-    shortcutRegistrationRevision,
-    setShortcutRegistrationRevision,
-  ] = useState(0);
+  const [shortcutRegistrationRevision, setShortcutRegistrationRevision] =
+    useState(0);
   const filtersRef = useRef(filters);
 
   const registerSound = useCallback(

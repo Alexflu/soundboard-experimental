@@ -16,8 +16,7 @@ describe('LocalSoundAdapter', () => {
     const soundsJsonMock = {
       soundboardEntries: [
         {
-          file:
-            '/home/glecun/dev/workspace/soundboard/sounds/kaamelott/Le_gras_est_la_vie.mp3',
+          file: '/home/glecun/dev/workspace/soundboard/sounds/kaamelott/Le_gras_est_la_vie.mp3',
           activationKeysNumbers: [49, 97],
         },
       ],
