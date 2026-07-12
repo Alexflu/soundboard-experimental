@@ -107,7 +107,7 @@ jobs:
           corepack prepare yarn@4.17.1 --activate
           $env:YARN_ENABLE_SCRIPTS = "false"
 
-          yarn install *> root-migration.log
+          yarn install --no-immutable *> root-migration.log
           $rootCode = $LASTEXITCODE
           Get-Content root-migration.log
           if ($rootCode -ne 0) {
@@ -115,7 +115,7 @@ jobs:
           }
 
           Push-Location src
-          yarn install *> ../src-migration.log
+          yarn install --no-immutable *> ../src-migration.log
           $srcCode = $LASTEXITCODE
           Pop-Location
           Get-Content src-migration.log
