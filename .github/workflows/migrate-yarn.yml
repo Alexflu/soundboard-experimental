@@ -99,15 +99,40 @@ jobs:
           '@ | Set-Content -Encoding utf8 .yarnrc.yml
 
       - name: Migrate lockfiles
+        id: migrate
+        continue-on-error: true
         shell: pwsh
         run: |
           corepack enable
           corepack prepare yarn@4.17.1 --activate
           $env:YARN_ENABLE_SCRIPTS = "false"
-          yarn install
+
+          yarn install *> root-migration.log
+          $rootCode = $LASTEXITCODE
+          Get-Content root-migration.log
+          if ($rootCode -ne 0) {
+            exit $rootCode
+          }
+
           Push-Location src
-          yarn install
+          yarn install *> ../src-migration.log
+          $srcCode = $LASTEXITCODE
           Pop-Location
+          Get-Content src-migration.log
+          exit $srcCode
+
+      - name: Upload migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yarn-migration-output
+          path: |
+            root-migration.log
+            src-migration.log
+
+      - name: Fail on migration errors
+        if: steps.migrate.outcome == 'failure'
+        run: exit 1
 
       - name: Commit Yarn migration
         shell: pwsh
