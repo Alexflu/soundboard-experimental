@@ -228,19 +228,41 @@ export class UserPreferences {
       return this;
     }
 
-    const remainingBindings = this.bindings.filter(
-      (binding) => binding !== bindingToUpdate
+    const compatibleBindings = this.bindings.filter(
+      (binding) =>
+        binding === bindingToUpdate ||
+        this.hotkeySettings.allowMultipleSoundsPerHotkey ||
+        binding.key !== nextKey
     );
-    const compatibleBindings = this.hotkeySettings.allowMultipleSoundsPerHotkey
-      ? remainingBindings
-      : remainingBindings.filter((binding) => binding.key !== nextKey);
 
     return this.setBindings(
-      compatibleBindings.concat({
-        key: nextKey,
-        sound: bindingToUpdate.sound,
-      })
+      compatibleBindings.map((binding) =>
+        binding === bindingToUpdate
+          ? { key: nextKey, sound: bindingToUpdate.sound }
+          : binding
+      )
     );
+  }
+
+  reorderBindings(sourceSoundId: string, targetSoundId: string): UserPreferences {
+    const sourceIndex = this.bindings.findIndex(
+      (binding) => binding.sound.id === sourceSoundId
+    );
+    const targetIndex = this.bindings.findIndex(
+      (binding) => binding.sound.id === targetSoundId
+    );
+    if (
+      sourceIndex < 0 ||
+      targetIndex < 0 ||
+      sourceIndex === targetIndex
+    ) {
+      return this;
+    }
+
+    const reordered = [...this.bindings];
+    const [sourceBinding] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, sourceBinding);
+    return this.setBindings(reordered);
   }
 
   setBindingVolume(
