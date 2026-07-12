@@ -164,4 +164,35 @@ describe('UserPreferences', () => {
       },
     ]);
   });
+
+  it('keeps a binding in place when its hotkey changes', () => {
+    const preferences = createPreferences()
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
+      .upsertBinding('Control+F1', sound('id-1'))
+      .upsertBinding('Control+F2', sound('id-2'))
+      .upsertBinding('Control+F3', sound('id-3'))
+      .updateBindingKey('Control+F2', 'Shift+F2', 'id-2');
+
+    expect(preferences.bindings.map((binding) => binding.sound.id)).toEqual([
+      'id-1',
+      'id-2',
+      'id-3',
+    ]);
+    expect(preferences.bindings[1].key).toBe('Shift+F2');
+  });
+
+  it('reorders bound sounds', () => {
+    const preferences = createPreferences()
+      .setHotkeySettings({ allowMultipleSoundsPerHotkey: true })
+      .upsertBinding('Control+F1', sound('id-1'))
+      .upsertBinding('Control+F2', sound('id-2'))
+      .upsertBinding('Control+F3', sound('id-3'))
+      .reorderBindings('id-3', 'id-1');
+
+    expect(preferences.bindings.map((binding) => binding.sound.id)).toEqual([
+      'id-3',
+      'id-1',
+      'id-2',
+    ]);
+  });
 });
