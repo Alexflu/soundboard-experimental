@@ -41,10 +41,7 @@ class LocalSoundAdapter {
       localSoundsFileJson.soundboardEntries.push(
         new LocalSoundJson([], soundPath, name, 1)
       );
-      LocalSoundAdapter.writeSoundsFile(
-        pathToSoundsJson,
-        localSoundsFileJson
-      );
+      LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info(`Cannot add file ${soundPath}`);
     }
@@ -56,10 +53,7 @@ class LocalSoundAdapter {
       localSoundsFileJson.soundboardEntries = localSoundsFileJson.soundboardEntries.filter(
         (sound) => LocalSoundAdapter.toFileUrl(sound.file) !== soundPath
       );
-      LocalSoundAdapter.writeSoundsFile(
-        pathToSoundsJson,
-        localSoundsFileJson
-      );
+      LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info(`Cannot remove file ${soundPath}`);
     }
@@ -74,10 +68,7 @@ class LocalSoundAdapter {
           entry.volume = normalizedVolume;
         }
       });
-      LocalSoundAdapter.writeSoundsFile(
-        pathToSoundsJson,
-        localSoundsFileJson
-      );
+      LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info('Cannot save sound volume');
     }
@@ -109,10 +100,7 @@ class LocalSoundAdapter {
 
       const [movedEntry] = entries.splice(sourceIndex, 1);
       entries.splice(targetIndex, 0, movedEntry);
-      LocalSoundAdapter.writeSoundsFile(
-        pathToSoundsJson,
-        localSoundsFileJson
-      );
+      LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info('Cannot reorder sounds');
     }
