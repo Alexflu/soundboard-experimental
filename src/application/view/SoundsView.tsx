@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Sound from '../../domain/entities/Sound';
+import Player from '../../domain/entities/Player';
 import SoundComponent from '../component/SoundComponent';
 import FilterComponent from '../component/FilterComponent';
 import AddSound from '../component/AddSound';
@@ -24,8 +25,7 @@ import {
 } from '../../domain/entities/HotkeyPreferences';
 import { captureHotkey } from '../component/hotkeyCapture';
 
-const getBindingId = (binding: HotkeyBinding) =>
-  `${binding.key}::${binding.sound.id}`;
+const getBindingId = (binding: HotkeyBinding) => binding.sound.id;
 
 const SoundsView = ({
   stopAllSounds,
@@ -47,6 +47,11 @@ const SoundsView = ({
   const [playingProgress, setPlayingProgress] = useState<
     Record<string, number>
   >({});
+  const [playingBindings, setPlayingBindings] = useState<
+    Record<string, boolean>
+  >({});
+  const activeBoundPlayers = useRef<Record<string, Set<Player>>>({});
+  const latestBoundPlayer = useRef<Record<string, Player>>({});
   const editCaptureCleanup = useRef<(() => void) | null>(null);
 
   const reloadSounds = useCallback(() => {
@@ -74,6 +79,26 @@ const SoundsView = ({
     if (player) {
       registerSound(() => player.stop());
     }
+  };
+
+  const stopBoundHotkeySound = (binding: HotkeyBinding) => {
+    const bindingId = getBindingId(binding);
+    activeBoundPlayers.current[bindingId]?.forEach((player) => player.stop());
+    delete activeBoundPlayers.current[bindingId];
+    delete latestBoundPlayer.current[bindingId];
+    setPlayingBindings((current) => ({ ...current, [bindingId]: false }));
+    setPlayingProgress((current) => {
+      const updated = { ...current };
+      delete updated[bindingId];
+      return updated;
+    });
+  };
+
+  const reorderBinding = (sourceSoundId: string, targetSoundId: string) => {
+    if (!sourceSoundId || sourceSoundId === targetSoundId) {
+      return;
+    }
+    soundboardDomain.reorderBindings(sourceSoundId, targetSoundId);
   };
 
   const finishEditingBinding = () => {
@@ -109,6 +134,7 @@ const SoundsView = ({
   };
 
   const removeBinding = (binding: HotkeyBinding) => {
+    stopBoundHotkeySound(binding);
     soundboardDomain.removeBinding(binding.key, binding.sound.id);
     toast.success(`Removed hotkey ${toHotkeyDisplay(binding.key)}`);
   };
@@ -139,16 +165,25 @@ const SoundsView = ({
 
   useEffect(() => {
     const unregisterPlayback = soundboardDomain.onBoundPlayback(
-      ({ key, soundId, player }) => {
+      ({ soundId, player }) => {
         const audioPlayer = player.player;
         if (!audioPlayer) {
           return;
         }
 
-        const progressId = `${key}::${soundId}`;
+        const progressId = soundId;
+        const players =
+          activeBoundPlayers.current[progressId] || new Set<Player>();
+        players.add(player);
+        activeBoundPlayers.current[progressId] = players;
+        latestBoundPlayer.current[progressId] = player;
+        setPlayingBindings((current) => ({ ...current, [progressId]: true }));
         setPlayingProgress((current) => ({ ...current, [progressId]: 0 }));
 
         const onTimeUpdate = () => {
+          if (latestBoundPlayer.current[progressId] !== player) {
+            return;
+          }
           const progress =
             audioPlayer.duration > 0
               ? audioPlayer.currentTime / audioPlayer.duration
@@ -159,18 +194,29 @@ const SoundsView = ({
           }));
         };
 
-        const clearProgress = () =>
-          setPlayingProgress((current) => {
-            const updated = { ...current };
-            delete updated[progressId];
-            return updated;
-          });
+        const removePlayer = () => {
+          const activePlayers = activeBoundPlayers.current[progressId];
+          activePlayers?.delete(player);
+          if (!activePlayers || activePlayers.size === 0) {
+            delete activeBoundPlayers.current[progressId];
+            delete latestBoundPlayer.current[progressId];
+            setPlayingBindings((current) => ({
+              ...current,
+              [progressId]: false,
+            }));
+            setPlayingProgress((current) => {
+              const updated = { ...current };
+              delete updated[progressId];
+              return updated;
+            });
+          }
+        };
 
         audioPlayer.addEventListener('timeupdate', onTimeUpdate);
-        audioPlayer.addEventListener('ended', clearProgress, { once: true });
+        audioPlayer.addEventListener('ended', removePlayer, { once: true });
         audioPlayer.addEventListener('pause', () => {
           if (audioPlayer.currentTime === 0 || audioPlayer.ended) {
-            clearProgress();
+            removePlayer();
           }
         });
       }
@@ -203,13 +249,38 @@ const SoundsView = ({
             {bindings.map((binding) => {
               const bindingId = getBindingId(binding);
               return (
-                <div className="bound-hotkey-row" key={bindingId}>
+                <div
+                  className="bound-hotkey-row"
+                  key={bindingId}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    reorderBinding(
+                      event.dataTransfer.getData(
+                        'application/x-soundboard-binding'
+                      ),
+                      binding.sound.id
+                    );
+                  }}
+                >
                   <button
                     type="button"
                     className="bound-hotkey-play"
-                    onClick={() => playBoundHotkeySound(binding)}
+                    onClick={() =>
+                      playingBindings[bindingId]
+                        ? stopBoundHotkeySound(binding)
+                        : playBoundHotkeySound(binding)
+                    }
+                    title={playingBindings[bindingId] ? 'Stop sound' : 'Play sound'}
                   >
-                    <FaPlay />
+                    {playingBindings[bindingId] ? (
+                      <FaStop className="stop" />
+                    ) : (
+                      <FaPlay />
+                    )}
                   </button>
                   <div className="bound-hotkey-content">
                     <div
@@ -218,7 +289,18 @@ const SoundsView = ({
                         transform: `scaleX(${playingProgress[bindingId] || 0})`,
                       }}
                     />
-                    <span className="bound-hotkey-sound-name">
+                    <span
+                      className="bound-hotkey-sound-name"
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData(
+                          'application/x-soundboard-binding',
+                          binding.sound.id
+                        );
+                        event.dataTransfer.effectAllowed = 'move';
+                      }}
+                      title="Drag to reorder"
+                    >
                       {binding.sound.name}
                     </span>
                     <button
