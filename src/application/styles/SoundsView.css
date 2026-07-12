@@ -42,10 +42,31 @@
   margin-bottom: 6px;
 }
 
+.sounds-view .sound-drop-zone {
+  position: relative;
+  height: 8px;
+  flex: 0 0 8px;
+}
+
+.sounds-view .sound-drop-zone::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 3px;
+  height: 2px;
+  border-radius: 2px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.sounds-view .sound-drop-zone.active::after {
+  background: #168de2;
+}
+
 .sounds-view .bound-hotkey-row {
   display: flex;
   align-items: center;
-  margin-bottom: 6px;
 }
 
 .sounds-view .bound-hotkey-play {
@@ -96,10 +117,20 @@
   cursor: grabbing;
 }
 
+.sounds-view .bound-hotkey-duration {
+  position: relative;
+  z-index: 1;
+  min-width: 42px;
+  margin-left: auto;
+  margin-right: 8px;
+  color: #bdbdbd;
+  font-size: 13px;
+  text-align: right;
+}
+
 .sounds-view .bound-hotkey-label {
   position: relative;
   z-index: 1;
-  margin-left: auto;
   margin-right: 8px;
   color: #ccc;
   cursor: pointer;
@@ -137,14 +168,6 @@
 
 .sounds-view .bound-hotkey-source-control:hover .bound-hotkey-source-icon {
   display: none;
-}
-
-.sounds-view .bound-hotkey-duration {
-  min-width: 42px;
-  margin-left: 8px;
-  color: #bdbdbd;
-  font-size: 13px;
-  text-align: right;
 }
 
 .sounds-view .bound-hotkey-volume {

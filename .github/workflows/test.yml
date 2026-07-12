@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-2022]
 
     steps:
       - name: Check out Git repository
@@ -27,14 +27,34 @@ jobs:
           node-version: 24.15.0
           cache: yarn
 
-      - name: yarn install
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
         shell: pwsh
         run: |
-          yarn install --frozen-lockfile --network-timeout 300000 *> install.log
-          if ($LASTEXITCODE -ne 0) {
-            Get-Content install.log
-            exit $LASTEXITCODE
+          yarn install --frozen-lockfile --ignore-scripts --network-timeout 300000 *> install.log
+          $code = $LASTEXITCODE
+          if ($code -eq 0) {
+            node node_modules/electron/install.js *>> install.log
+            $code = $LASTEXITCODE
           }
+          if ($code -eq 0) {
+            yarn --cwd src install --frozen-lockfile --ignore-scripts --network-timeout 300000 *>> install.log
+            $code = $LASTEXITCODE
+          }
+          Get-Content install.log
+          exit $code
+
+      - name: Upload install diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-output
+          path: install.log
+
+      - name: Fail on install errors
+        if: steps.install.outcome == 'failure'
+        run: exit 1
 
       - name: Lint
         id: lint
