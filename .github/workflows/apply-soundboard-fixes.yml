@@ -1,0 +1,37 @@
+name: Apply soundboard fixes
+
+on:
+  push:
+    branches:
+      - feature/passive-global-hotkeys
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/passive-global-hotkeys
+
+      - name: Apply fixes
+        shell: bash
+        run: |
+          echo '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' | base64 -d | gzip -d > /tmp/patch_soundboard.py
+          python /tmp/patch_soundboard.py
+          npx --yes prettier@2.0.5 --single-quote --write \
+            src/application/view/SoundsView.tsx \
+            src/infrastructure/LocalSoundAdapter.ts \
+            src/application/styles/SoundsView.css
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: align durations and improve sound reordering"
+          git push origin HEAD:feature/passive-global-hotkeys
