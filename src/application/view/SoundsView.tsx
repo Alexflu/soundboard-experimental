@@ -27,6 +27,33 @@ import { captureHotkey } from '../component/hotkeyCapture';
 
 const getBindingId = (binding: HotkeyBinding) => binding.sound.id;
 
+type DropPosition = 'before' | 'after';
+
+type SoundDropZoneProps = {
+  dataType: string;
+  onDropSound: (soundId: string) => void;
+};
+
+const SoundDropZone = ({ dataType, onDropSound }: SoundDropZoneProps) => (
+  <div
+    className="sound-drop-zone"
+    onDragEnter={(event) => event.currentTarget.classList.add('active')}
+    onDragLeave={(event) => event.currentTarget.classList.remove('active')}
+    onDragOver={(event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+    }}
+    onDrop={(event) => {
+      event.preventDefault();
+      event.currentTarget.classList.remove('active');
+      const soundId = event.dataTransfer.getData(dataType);
+      if (soundId) {
+        onDropSound(soundId);
+      }
+    }}
+  />
+);
+
 const formatDuration = (duration?: number) => {
   if (duration === undefined || !Number.isFinite(duration)) {
     return '--:--';
@@ -115,11 +142,57 @@ const SoundsView = ({
     }));
   };
 
-  const reorderBinding = (sourceSoundId: string, targetSoundId: string) => {
+  const reorderBinding = (
+    sourceSoundId: string,
+    targetSoundId: string,
+    position: DropPosition = 'after'
+  ) => {
     if (!sourceSoundId || sourceSoundId === targetSoundId) {
       return;
     }
-    soundboardDomain.reorderBindings(sourceSoundId, targetSoundId);
+
+    const preferences = soundboardDomain.getUserPreferences();
+    const reordered = [...preferences.bindings];
+    const sourceIndex = reordered.findIndex(
+      (binding) => binding.sound.id === sourceSoundId
+    );
+    if (sourceIndex < 0) {
+      return;
+    }
+
+    const [movedBinding] = reordered.splice(sourceIndex, 1);
+    const targetIndex = reordered.findIndex(
+      (binding) => binding.sound.id === targetSoundId
+    );
+    if (targetIndex < 0) {
+      return;
+    }
+
+    reordered.splice(
+      targetIndex + (position === 'after' ? 1 : 0),
+      0,
+      movedBinding
+    );
+    soundboardDomain.setUserPreferences(preferences.setBindings(reordered));
+  };
+
+  const reorderLocalSound = (
+    sourceSoundPath: string,
+    targetSoundPath: string,
+    position: DropPosition
+  ) => {
+    if (!sourceSoundPath || sourceSoundPath === targetSoundPath) {
+      return;
+    }
+
+    const preferences = soundboardDomain.getUserPreferences();
+    soundboardDomain.localSoundAdapter.reorderSounds(
+      preferences.pathToSoundsJson,
+      sourceSoundPath,
+      targetSoundPath,
+      position
+    );
+    reloadSounds();
   };
 
   const finishEditingBinding = () => {
@@ -308,6 +381,10 @@ const SoundsView = ({
       <FaGlobeAmericas className="bound-hotkey-source-icon" title="MyInstant" />
     );
 
+  const lastLocalSoundPath = [...sounds]
+    .reverse()
+    .find((sound) => sound.source === Source.LOCAL)?.path;
+
   return (
     <div className="sounds-view animated fadeInRight">
       <div className="actions">
@@ -326,115 +403,137 @@ const SoundsView = ({
             {bindings.map((binding) => {
               const bindingId = getBindingId(binding);
               return (
-                <div
-                  className="bound-hotkey-row"
-                  key={bindingId}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = 'move';
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    reorderBinding(
-                      event.dataTransfer.getData(
-                        'application/x-soundboard-binding'
-                      ),
-                      binding.sound.id
-                    );
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="bound-hotkey-play"
-                    onClick={() =>
-                      playingBindings[bindingId]
-                        ? stopBoundHotkeySound(binding)
-                        : playBoundHotkeySound(binding)
+                <React.Fragment key={bindingId}>
+                  <SoundDropZone
+                    dataType="application/x-soundboard-binding"
+                    onDropSound={(sourceSoundId) =>
+                      reorderBinding(sourceSoundId, binding.sound.id, 'before')
                     }
-                    title={
-                      playingBindings[bindingId] ? 'Stop sound' : 'Play sound'
-                    }
+                  />
+                  <div
+                    className="bound-hotkey-row"
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = 'move';
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      reorderBinding(
+                        event.dataTransfer.getData(
+                          'application/x-soundboard-binding'
+                        ),
+                        binding.sound.id,
+                        'after'
+                      );
+                    }}
                   >
-                    {playingBindings[bindingId] ? (
-                      <FaStop className="stop" />
-                    ) : (
-                      <FaPlay />
-                    )}
-                  </button>
-                  <div className="bound-hotkey-content">
-                    <div
-                      className="bound-hotkey-progress"
-                      style={{
-                        transform: `scaleX(${playingProgress[bindingId] || 0})`,
-                      }}
-                    />
-                    <span
-                      className="bound-hotkey-sound-name"
-                      draggable
-                      onDragStart={(event) => {
-                        event.dataTransfer.setData(
-                          'application/x-soundboard-binding',
-                          binding.sound.id
-                        );
-                        event.dataTransfer.effectAllowed = 'move';
-                      }}
-                      title="Drag to reorder"
-                    >
-                      {binding.sound.name}
-                    </span>
                     <button
                       type="button"
-                      className="bound-hotkey-label"
-                      onClick={() => editBindingKey(binding)}
-                      data-hotkey-capture-trigger
+                      className="bound-hotkey-play"
+                      onClick={() =>
+                        playingBindings[bindingId]
+                          ? stopBoundHotkeySound(binding)
+                          : playBoundHotkeySound(binding)
+                      }
                       title={
-                        editingBindingId === bindingId
-                          ? 'Press a key combination. Escape or click elsewhere to cancel.'
-                          : 'Change this hotkey'
+                        playingBindings[bindingId] ? 'Stop sound' : 'Play sound'
                       }
                     >
-                      {editingBindingId === bindingId
-                        ? 'Press keys…'
-                        : toHotkeyDisplay(binding.key)}
+                      {playingBindings[bindingId] ? (
+                        <FaStop className="stop" />
+                      ) : (
+                        <FaPlay />
+                      )}
                     </button>
-                    <div className="bound-hotkey-source-control">
-                      {getSourceIcon(binding)}
+                    <div className="bound-hotkey-content">
+                      <div
+                        className="bound-hotkey-progress"
+                        style={{
+                          transform: `scaleX(${
+                            playingProgress[bindingId] || 0
+                          })`,
+                        }}
+                      />
+                      <span
+                        className="bound-hotkey-sound-name"
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData(
+                            'application/x-soundboard-binding',
+                            binding.sound.id
+                          );
+                          event.dataTransfer.effectAllowed = 'move';
+                        }}
+                        title="Drag to reorder"
+                      >
+                        {binding.sound.name}
+                      </span>
+                      <span
+                        className="bound-hotkey-duration"
+                        title={`Total duration ${formatDuration(
+                          boundDurations[bindingId]
+                        )}`}
+                      >
+                        {formatDuration(
+                          playingBindings[bindingId]
+                            ? boundRemainingTimes[bindingId]
+                            : boundDurations[bindingId]
+                        )}
+                      </span>
                       <button
                         type="button"
-                        className="bound-hotkey-remove"
-                        onClick={() => removeBinding(binding)}
+                        className="bound-hotkey-label"
+                        onClick={() => editBindingKey(binding)}
+                        data-hotkey-capture-trigger
+                        title={
+                          editingBindingId === bindingId
+                            ? 'Press a key combination. Escape or click elsewhere to cancel.'
+                            : 'Change this hotkey'
+                        }
                       >
-                        <FaTrash />
+                        {editingBindingId === bindingId
+                          ? 'Press keys…'
+                          : toHotkeyDisplay(binding.key)}
                       </button>
+                      <div className="bound-hotkey-source-control">
+                        {getSourceIcon(binding)}
+                        <button
+                          type="button"
+                          className="bound-hotkey-remove"
+                          onClick={() => removeBinding(binding)}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
                     </div>
+                    <input
+                      className="bound-hotkey-volume"
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={binding.sound.volume}
+                      onChange={(event) =>
+                        setBindingVolume(binding, event.target.value)
+                      }
+                      title="Bound sound volume"
+                    />
                   </div>
-                  <span
-                    className="bound-hotkey-duration"
-                    title={`Total duration ${formatDuration(
-                      boundDurations[bindingId]
-                    )}`}
-                  >
-                    {formatDuration(
-                      playingBindings[bindingId]
-                        ? boundRemainingTimes[bindingId]
-                        : boundDurations[bindingId]
-                    )}
-                  </span>
-                  <input
-                    className="bound-hotkey-volume"
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={binding.sound.volume}
-                    onChange={(event) =>
-                      setBindingVolume(binding, event.target.value)
-                    }
-                    title="Bound sound volume"
-                  />
-                </div>
+                </React.Fragment>
               );
             })}
+            {bindings.length > 0 && (
+              <SoundDropZone
+                dataType="application/x-soundboard-binding"
+                onDropSound={(sourceSoundId) =>
+                  reorderBinding(
+                    sourceSoundId,
+                    bindings[bindings.length - 1].sound.id,
+                    'after'
+                  )
+                }
+              />
+            )}
             <span className="bound-hotkeys-helper">
               Random Sound: {toHotkeyDisplay(hotkeys.randomSound)}
             </span>
@@ -444,13 +543,31 @@ const SoundsView = ({
           </div>
         )}
         {sounds.map((sound) => (
-          <SoundComponent
-            key={sound.path || sound.name}
-            sound={sound}
-            bindings={bindings}
-            registerSound={registerSound}
-            reloadSounds={reloadSounds}
-          />
+          <React.Fragment key={sound.path || sound.name}>
+            {sound.source === Source.LOCAL && (
+              <SoundDropZone
+                dataType="application/x-soundboard-local"
+                onDropSound={(sourceSoundPath) =>
+                  reorderLocalSound(sourceSoundPath, sound.path, 'before')
+                }
+              />
+            )}
+            <SoundComponent
+              sound={sound}
+              bindings={bindings}
+              registerSound={registerSound}
+              reloadSounds={reloadSounds}
+            />
+            {sound.source === Source.LOCAL &&
+              sound.path === lastLocalSoundPath && (
+                <SoundDropZone
+                  dataType="application/x-soundboard-local"
+                  onDropSound={(sourceSoundPath) =>
+                    reorderLocalSound(sourceSoundPath, sound.path, 'after')
+                  }
+                />
+              )}
+          </React.Fragment>
         ))}
       </div>
 
