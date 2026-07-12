@@ -5,17 +5,38 @@ type AudioWithSinkId = HTMLAudioElement & {
   setSinkId?: (sinkId: string) => Promise<void>;
 };
 
+const normalizeVolume = (volume: number) =>
+  Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 1;
+
 class Player {
+  private static readonly activePlayers = new Set<Player>();
+
+  private static globalMasterVolume = 1;
+
   player: HTMLAudioElement | undefined;
 
   sound: Sound;
 
   audioOutputDeviceId: string;
 
-  constructor(sound: Sound, audioOutputDeviceId: string) {
+  masterVolume: number;
+
+  constructor(
+    sound: Sound,
+    audioOutputDeviceId: string,
+    masterVolume = Player.globalMasterVolume
+  ) {
     this.sound = sound;
     this.audioOutputDeviceId = audioOutputDeviceId;
+    this.masterVolume = normalizeVolume(masterVolume);
     this.player = undefined;
+  }
+
+  static setGlobalMasterVolume(volume: number) {
+    Player.globalMasterVolume = normalizeVolume(volume);
+    Player.activePlayers.forEach((player) =>
+      player.setMasterVolume(Player.globalMasterVolume)
+    );
   }
 
   isPlaying(): boolean {
@@ -30,7 +51,14 @@ class Player {
 
   async play() {
     this.player = new Audio(this.sound.path) as HTMLAudioElement;
-    this.player.volume = this.sound.volume;
+    this.masterVolume = Player.globalMasterVolume;
+    this.applyVolume();
+    Player.activePlayers.add(this);
+    this.player.addEventListener(
+      'ended',
+      () => Player.activePlayers.delete(this),
+      { once: true }
+    );
     if (this.audioOutputDeviceId !== 'default') {
       const playerWithSinkId = this.player as AudioWithSinkId;
       try {
@@ -43,16 +71,25 @@ class Player {
         toast.error(`Error when setting sinkId: ${e}`);
       }
     }
-    this.player
-      .play()
-      .catch((e) => toast.error(`Error when playing sound : ${e}`));
+    this.player.play().catch((e) => {
+      Player.activePlayers.delete(this);
+      toast.error(`Error when playing sound : ${e}`);
+    });
   }
 
   setVolume(volume: number) {
-    const normalizedVolume = Math.min(1, Math.max(0, volume));
-    this.sound.volume = normalizedVolume;
+    this.sound.volume = normalizeVolume(volume);
+    this.applyVolume();
+  }
+
+  private setMasterVolume(volume: number) {
+    this.masterVolume = normalizeVolume(volume);
+    this.applyVolume();
+  }
+
+  private applyVolume() {
     if (this.player) {
-      this.player.volume = normalizedVolume;
+      this.player.volume = this.sound.volume * this.masterVolume;
     }
   }
 
@@ -61,6 +98,7 @@ class Player {
       this.player.pause();
       this.player.currentTime = 0;
     }
+    Player.activePlayers.delete(this);
     delete this.player;
   }
 }

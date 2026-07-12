@@ -245,11 +245,14 @@ export class SoundboardDomain {
 
   private playBinding(binding: HotkeyBinding): Player {
     const player = this.playSound(
-      new Sound(binding.sound.name, '', binding.sound.url, binding.sound.source)
+      new Sound(
+        binding.sound.name,
+        '',
+        binding.sound.url,
+        binding.sound.source,
+        binding.sound.volume
+      )
     );
-    if (player.player) {
-      player.player.volume = binding.sound.volume;
-    }
     this.boundPlaybackListeners.forEach((listener) =>
       listener({
         key: binding.key,
@@ -261,8 +264,10 @@ export class SoundboardDomain {
   }
 
   private playSound(sound: Sound): Player {
-    const audioOutput = this.getUserPreferences().audioOutput.id;
-    const player = new Player(sound, audioOutput);
+    const { audioOutput } = this.getUserPreferences();
+    const masterVolume = audioOutput.volume ?? 1;
+    Player.setGlobalMasterVolume(masterVolume);
+    const player = new Player(sound, audioOutput.id, masterVolume);
     player.play();
     return player;
   }

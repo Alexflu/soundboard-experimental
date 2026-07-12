@@ -30,9 +30,12 @@ const SoundComponent = ({
   registerSound: (stopSound: () => void) => void;
   reloadSounds: () => void;
 }) => {
-  const [player] = useState(
-    new Player(sound, soundboardDomain.getUserPreferences().audioOutput.id)
-  );
+  const [player] = useState(() => {
+    const { audioOutput } = soundboardDomain.getUserPreferences();
+    const masterVolume = audioOutput.volume ?? 1;
+    Player.setGlobalMasterVolume(masterVolume);
+    return new Player(sound, audioOutput.id, masterVolume);
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCapturingHotkey, setIsCapturingHotkey] = useState(false);
   const [duration, setDuration] = useState<number | null>(null);
