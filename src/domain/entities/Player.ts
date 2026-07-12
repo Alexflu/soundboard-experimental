@@ -11,6 +11,8 @@ const normalizeVolume = (volume: number) =>
 class Player {
   private static readonly activePlayers = new Set<Player>();
 
+  private static globalMasterVolume = 1;
+
   player: HTMLAudioElement | undefined;
 
   sound: Sound;
@@ -19,7 +21,11 @@ class Player {
 
   masterVolume: number;
 
-  constructor(sound: Sound, audioOutputDeviceId: string, masterVolume = 1) {
+  constructor(
+    sound: Sound,
+    audioOutputDeviceId: string,
+    masterVolume = Player.globalMasterVolume
+  ) {
     this.sound = sound;
     this.audioOutputDeviceId = audioOutputDeviceId;
     this.masterVolume = normalizeVolume(masterVolume);
@@ -27,7 +33,10 @@ class Player {
   }
 
   static setGlobalMasterVolume(volume: number) {
-    Player.activePlayers.forEach((player) => player.setMasterVolume(volume));
+    Player.globalMasterVolume = normalizeVolume(volume);
+    Player.activePlayers.forEach((player) =>
+      player.setMasterVolume(Player.globalMasterVolume)
+    );
   }
 
   isPlaying(): boolean {
