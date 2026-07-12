@@ -210,6 +210,12 @@ export class SoundboardDomain {
     );
   }
 
+  reorderBindings(sourceSoundId: string, targetSoundId: string) {
+    this.setUserPreferences(
+      this.getUserPreferences().reorderBindings(sourceSoundId, targetSoundId)
+    );
+  }
+
   findBindingByKey(key: string): HotkeyBinding | null {
     const bindings = this.findBindingsByKey(key);
     return bindings[bindings.length - 1] || null;
