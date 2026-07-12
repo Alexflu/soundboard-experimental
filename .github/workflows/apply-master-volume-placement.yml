@@ -1,0 +1,51 @@
+name: Apply master volume placement
+
+on:
+  push:
+    branches:
+      - feature/audio-output-master-volume
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/audio-output-master-volume
+
+      - name: Move control into toolbar
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/application/view/SoundsView.tsx')
+          text = path.read_text()
+          import_anchor = "import FilterComponent from '../component/FilterComponent';\n"
+          import_line = "import MasterVolumeControl from '../component/MasterVolumeControl';\n"
+          if import_line not in text:
+              text = text.replace(import_anchor, import_anchor + import_line)
+
+          button = '''        <button className="button-stop-all" onClick={stopAll} type="button">
+          <FaStop className="icon-stop-all" />
+        </button>
+'''
+          replacement = button + '        <MasterVolumeControl />\n'
+          if '<MasterVolumeControl />' not in text:
+              text = text.replace(button, replacement)
+
+          path.write_text(text)
+          PY
+
+      - name: Commit placement
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/application/view/SoundsView.tsx
+          git commit -m "feat: place master volume in main toolbar"
+          git push origin HEAD:feature/audio-output-master-volume
