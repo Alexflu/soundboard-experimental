@@ -15,7 +15,6 @@ import {
   app,
   BrowserWindow,
   dialog,
-  globalShortcut,
   ipcMain,
   Menu,
   nativeImage,
@@ -25,8 +24,16 @@ import {
 } from 'electron';
 import log from 'electron-log';
 import MenuBuilder from './menu';
+import PassiveShortcutManager, {
+  PassiveKeyboardHook,
+} from './infrastructure/PassiveShortcutManager';
 
 const { autoUpdater } = require('electron-updater');
+
+type UiohookModule = {
+  uIOhook: PassiveKeyboardHook;
+  UiohookKey: Record<string, number>;
+};
 
 export default class AppUpdater {
   constructor() {
@@ -37,6 +44,33 @@ export default class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let shortcutManager: PassiveShortcutManager | null = null;
+
+const initializePassiveShortcuts = () => {
+  if (shortcutManager) {
+    return true;
+  }
+
+  try {
+    const { uIOhook, UiohookKey } = require('uiohook-napi') as UiohookModule;
+    const manager = new PassiveShortcutManager(
+      uIOhook,
+      UiohookKey,
+      (accelerator) => {
+        mainWindow?.webContents.send('shortcut:triggered', accelerator);
+      }
+    );
+    if (!manager.start()) {
+      log.error('Passive global keyboard listener could not start');
+      return false;
+    }
+    shortcutManager = manager;
+    return true;
+  } catch (error) {
+    log.error('Passive global keyboard listener is unavailable', error);
+    return false;
+  }
+};
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -93,6 +127,8 @@ const createWindow = async () => {
     },
   });
 
+  initializePassiveShortcuts();
+
   ipcMain.on('window:minimize', () => {
     mainWindow?.minimize();
   });
@@ -117,19 +153,20 @@ const createWindow = async () => {
   });
 
   ipcMain.on('shortcut:register', (event, accelerator: string) => {
-    const registered = globalShortcut.register(accelerator, () => {
-      mainWindow?.webContents.send('shortcut:triggered', accelerator);
-    });
-    event.returnValue = registered;
+    event.returnValue = shortcutManager?.register(accelerator) ?? false;
   });
 
   ipcMain.on('shortcut:unregister', (_event, accelerator: string) => {
-    globalShortcut.unregister(accelerator);
+    shortcutManager?.unregister(accelerator);
   });
 
   ipcMain.on('shortcut:suspend', (event) => {
-    globalShortcut.unregisterAll();
-    event.returnValue = true;
+    shortcutManager?.suspend();
+    event.returnValue = shortcutManager !== null;
+  });
+
+  ipcMain.on('shortcut:resume', () => {
+    shortcutManager?.resume();
   });
 
   ipcMain.handle(
@@ -225,7 +262,8 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
+  shortcutManager?.stop();
+  shortcutManager = null;
   ipcMain.removeAllListeners('window:minimize');
   ipcMain.removeAllListeners('window:toggle-maximize');
   ipcMain.removeAllListeners('window:hide');
@@ -233,6 +271,7 @@ app.on('will-quit', () => {
   ipcMain.removeAllListeners('shortcut:register');
   ipcMain.removeAllListeners('shortcut:unregister');
   ipcMain.removeAllListeners('shortcut:suspend');
+  ipcMain.removeAllListeners('shortcut:resume');
   ipcMain.removeHandler('dialog:choose-sounds-json');
 });
 
