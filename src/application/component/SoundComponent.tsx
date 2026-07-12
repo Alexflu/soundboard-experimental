@@ -161,9 +161,7 @@ const SoundComponent = ({
   );
 
   const bindingLabel = soundBindings.length
-    ? soundBindings
-        .map((binding) => toHotkeyDisplay(binding.key))
-        .join(', ')
+    ? soundBindings.map((binding) => toHotkeyDisplay(binding.key)).join(', ')
     : 'Bind';
 
   const sourceIcon =
@@ -184,7 +182,9 @@ const SoundComponent = ({
       }}
       onDrop={(event) => {
         event.preventDefault();
-        reorderSound(event.dataTransfer.getData('application/x-soundboard-local'));
+        reorderSound(
+          event.dataTransfer.getData('application/x-soundboard-local')
+        );
       }}
     >
       <div
@@ -225,17 +225,6 @@ const SoundComponent = ({
         >
           {formatDuration(isPlaying ? remainingTime : duration)}
         </span>
-        <input
-          className="sound-volume"
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={volume}
-          onChange={(event) => updateVolume(Number(event.target.value))}
-          title={`Volume ${Math.round(volume * 100)}%`}
-          aria-label={`${sound.name} volume`}
-        />
         <button
           className="bind-hotkey-button"
           type="button"
@@ -257,6 +246,17 @@ const SoundComponent = ({
             </div>
           )}
         </div>
+        <input
+          className="sound-volume"
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={volume}
+          onChange={(event) => updateVolume(Number(event.target.value))}
+          title={`Volume ${Math.round(volume * 100)}%`}
+          aria-label={`${sound.name} volume`}
+        />
       </div>
     </div>
   );
