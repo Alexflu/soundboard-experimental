@@ -1,6 +1,5 @@
 .filters-component {
-  display: flex;
-  align-items: center;
+  display: contents;
 }
 
 .filters-component .search-icon {
@@ -30,4 +29,10 @@
   background: transparent;
   color: #e0e0e0;
   cursor: pointer;
+}
+
+.filters-component .master-volume-control {
+  order: 2;
+  width: 90px;
+  margin-left: 8px;
 }
