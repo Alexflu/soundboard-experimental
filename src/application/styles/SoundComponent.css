@@ -74,7 +74,6 @@
 
 .sound-component .sound-volume {
   width: 110px;
-  margin-right: 12px;
   cursor: pointer;
 }
 
@@ -86,6 +85,7 @@
   position: relative;
   width: 24px;
   height: 24px;
+  margin-right: 12px;
   flex: 0 0 24px;
 }
 
