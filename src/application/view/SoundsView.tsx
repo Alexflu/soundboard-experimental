@@ -27,6 +27,15 @@ import { captureHotkey } from '../component/hotkeyCapture';
 
 const getBindingId = (binding: HotkeyBinding) => binding.sound.id;
 
+const formatDuration = (duration?: number) => {
+  if (duration === undefined || !Number.isFinite(duration)) {
+    return '--:--';
+  }
+  const seconds = Math.max(0, Math.ceil(duration));
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+};
+
 const SoundsView = ({
   stopAllSounds,
   registerSound,
@@ -50,8 +59,15 @@ const SoundsView = ({
   const [playingBindings, setPlayingBindings] = useState<
     Record<string, boolean>
   >({});
+  const [boundDurations, setBoundDurations] = useState<Record<string, number>>(
+    {}
+  );
+  const [boundRemainingTimes, setBoundRemainingTimes] = useState<
+    Record<string, number>
+  >({});
   const activeBoundPlayers = useRef<Record<string, Set<Player>>>({});
   const latestBoundPlayer = useRef<Record<string, Player>>({});
+  const boundDurationsRef = useRef<Record<string, number>>({});
   const editCaptureCleanup = useRef<(() => void) | null>(null);
 
   const reloadSounds = useCallback(() => {
@@ -92,6 +108,11 @@ const SoundsView = ({
       delete updated[bindingId];
       return updated;
     });
+    setBoundRemainingTimes((current) => ({
+      ...current,
+      [bindingId]:
+        boundDurationsRef.current[bindingId] ?? current[bindingId] ?? 0,
+    }));
   };
 
   const reorderBinding = (sourceSoundId: string, targetSoundId: string) => {
@@ -164,6 +185,40 @@ const SoundsView = ({
   );
 
   useEffect(() => {
+    const cleanups = bindings.reduce<Array<() => void>>((current, binding) => {
+      const bindingId = getBindingId(binding);
+      if (boundDurationsRef.current[bindingId] !== undefined) {
+        return current;
+      }
+
+      const metadataPlayer = new Audio(binding.sound.url);
+      metadataPlayer.preload = 'metadata';
+      const onMetadata = () => {
+        const { duration } = metadataPlayer;
+        if (!Number.isFinite(duration) || duration <= 0) {
+          return;
+        }
+        boundDurationsRef.current[bindingId] = duration;
+        setBoundDurations((values) => ({ ...values, [bindingId]: duration }));
+        setBoundRemainingTimes((values) =>
+          values[bindingId] === undefined
+            ? { ...values, [bindingId]: duration }
+            : values
+        );
+      };
+      metadataPlayer.addEventListener('loadedmetadata', onMetadata);
+      metadataPlayer.load();
+
+      return current.concat(() => {
+        metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
+        metadataPlayer.src = '';
+      });
+    }, []);
+
+    return () => cleanups.forEach((cleanup) => cleanup());
+  }, [bindings]);
+
+  useEffect(() => {
     const unregisterPlayback = soundboardDomain.onBoundPlayback(
       ({ soundId, player }) => {
         const audioPlayer = player.player;
@@ -184,19 +239,38 @@ const SoundsView = ({
           if (latestBoundPlayer.current[progressId] !== player) {
             return;
           }
-          const progress =
-            audioPlayer.duration > 0
-              ? audioPlayer.currentTime / audioPlayer.duration
-              : 0;
+          const duration = audioPlayer.duration;
+          if (!Number.isFinite(duration) || duration <= 0) {
+            return;
+          }
+          boundDurationsRef.current[progressId] = duration;
+          setBoundDurations((current) => ({
+            ...current,
+            [progressId]: duration,
+          }));
           setPlayingProgress((current) => ({
             ...current,
-            [progressId]: progress,
+            [progressId]: audioPlayer.currentTime / duration,
+          }));
+          setBoundRemainingTimes((current) => ({
+            ...current,
+            [progressId]: Math.max(0, duration - audioPlayer.currentTime),
           }));
         };
 
         const removePlayer = () => {
           const activePlayers = activeBoundPlayers.current[progressId];
           activePlayers?.delete(player);
+
+          if (latestBoundPlayer.current[progressId] === player) {
+            const nextPlayer = activePlayers
+              ? Array.from(activePlayers)[0]
+              : undefined;
+            if (nextPlayer) {
+              latestBoundPlayer.current[progressId] = nextPlayer;
+            }
+          }
+
           if (!activePlayers || activePlayers.size === 0) {
             delete activeBoundPlayers.current[progressId];
             delete latestBoundPlayer.current[progressId];
@@ -209,16 +283,19 @@ const SoundsView = ({
               delete updated[progressId];
               return updated;
             });
+            setBoundRemainingTimes((current) => ({
+              ...current,
+              [progressId]:
+                boundDurationsRef.current[progressId] ??
+                current[progressId] ??
+                0,
+            }));
           }
         };
 
         audioPlayer.addEventListener('timeupdate', onTimeUpdate);
         audioPlayer.addEventListener('ended', removePlayer, { once: true });
-        audioPlayer.addEventListener('pause', () => {
-          if (audioPlayer.currentTime === 0 || audioPlayer.ended) {
-            removePlayer();
-          }
-        });
+        audioPlayer.addEventListener('pause', removePlayer, { once: true });
       }
     );
     return () => unregisterPlayback();
@@ -274,7 +351,9 @@ const SoundsView = ({
                         ? stopBoundHotkeySound(binding)
                         : playBoundHotkeySound(binding)
                     }
-                    title={playingBindings[bindingId] ? 'Stop sound' : 'Play sound'}
+                    title={
+                      playingBindings[bindingId] ? 'Stop sound' : 'Play sound'
+                    }
                   >
                     {playingBindings[bindingId] ? (
                       <FaStop className="stop" />
@@ -329,6 +408,18 @@ const SoundsView = ({
                       </button>
                     </div>
                   </div>
+                  <span
+                    className="bound-hotkey-duration"
+                    title={`Total duration ${formatDuration(
+                      boundDurations[bindingId]
+                    )}`}
+                  >
+                    {formatDuration(
+                      playingBindings[bindingId]
+                        ? boundRemainingTimes[bindingId]
+                        : boundDurations[bindingId]
+                    )}
+                  </span>
                   <input
                     className="bound-hotkey-volume"
                     type="range"
