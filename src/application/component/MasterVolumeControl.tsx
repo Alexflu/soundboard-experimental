@@ -40,6 +40,7 @@ const MasterVolumeControl = () => {
 
   return (
     <input
+      className="master-volume-control"
       type="range"
       min={0}
       max={1}
@@ -48,7 +49,6 @@ const MasterVolumeControl = () => {
       onChange={(event) => updateVolume(Number(event.target.value))}
       title={`Master volume ${Math.round(volume * 100)}%`}
       aria-label="Master volume"
-      style={{ width: '90px', marginLeft: '8px' }}
     />
   );
 };
