@@ -139,6 +139,14 @@
   display: none;
 }
 
+.sounds-view .bound-hotkey-duration {
+  min-width: 42px;
+  margin-left: 8px;
+  color: #bdbdbd;
+  font-size: 13px;
+  text-align: right;
+}
+
 .sounds-view .bound-hotkey-volume {
   margin-left: 8px;
   width: 90px;
