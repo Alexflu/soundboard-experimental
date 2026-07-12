@@ -239,7 +239,7 @@ const SoundsView = ({
           if (latestBoundPlayer.current[progressId] !== player) {
             return;
           }
-          const duration = audioPlayer.duration;
+          const { duration } = audioPlayer;
           if (!Number.isFinite(duration) || duration <= 0) {
             return;
           }
