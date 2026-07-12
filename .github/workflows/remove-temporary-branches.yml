@@ -1,0 +1,19 @@
+name: Remove temporary branches
+
+on:
+  push:
+    branches:
+      - tmp-test-ignore
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete temporary branches
+        shell: bash
+        run: |
+          remote="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git push "$remote" --delete feature/audio-output-master-volume-x zzz-delete-me tmp-test-ignore
