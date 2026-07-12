@@ -51,6 +51,7 @@ class Player {
 
   async play() {
     this.player = new Audio(this.sound.path) as HTMLAudioElement;
+    this.masterVolume = Player.globalMasterVolume;
     this.applyVolume();
     Player.activePlayers.add(this);
     this.player.addEventListener(
