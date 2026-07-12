@@ -1,24 +1,37 @@
 .sound-component {
+  position: relative;
   margin-bottom: 6px;
   padding: 10px;
   border-bottom: 1px solid grey;
   display: flex;
   align-items: center;
+  overflow: hidden;
 }
 
-.sound-component.reorderable {
-  cursor: grab;
+.sound-component > *:not(.sound-progress) {
+  position: relative;
+  z-index: 1;
 }
 
-.sound-component.reorderable:active {
-  cursor: grabbing;
+.sound-component .sound-progress {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  transform-origin: left;
+  background: rgba(0, 128, 0, 0.18);
+  pointer-events: none;
 }
 
 .sound-component .action-container {
   margin-right: 14px;
+  padding: 0;
   color: #008000;
   font-size: 24px;
   cursor: pointer;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
 }
 
 .sound-component .action-container .stop {
@@ -32,14 +45,17 @@
   min-width: 0;
 }
 
-.sound-component .name-description-container .description,
-.sound-component .name-description-container .duration {
-  font-size: 13px;
-  font-weight: normal;
+.sound-component .name-description-container.reorder-handle {
+  cursor: grab;
 }
 
-.sound-component .name-description-container .duration {
-  color: #bdbdbd;
+.sound-component .name-description-container.reorder-handle:active {
+  cursor: grabbing;
+}
+
+.sound-component .name-description-container .description {
+  font-size: 13px;
+  font-weight: normal;
 }
 
 .sound-component .row-end {
@@ -48,10 +64,35 @@
   align-items: center;
 }
 
+.sound-component .sound-duration {
+  min-width: 42px;
+  margin-right: 10px;
+  color: #bdbdbd;
+  font-size: 13px;
+  text-align: right;
+}
+
 .sound-component .sound-volume {
   width: 110px;
   margin-right: 12px;
   cursor: pointer;
+}
+
+.sound-component .bind-hotkey-button {
+  margin-right: 12px;
+}
+
+.sound-component .sound-source-control {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
+.sound-component .source-icon,
+.sound-component .remove-button-container {
+  position: absolute;
+  inset: 0;
 }
 
 .sound-component .source-icon {
@@ -60,13 +101,16 @@
 
 .sound-component .remove-button-container {
   display: none;
-  margin-right: 20px;
+  color: #c60000;
+  cursor: pointer;
 }
 
-.sound-component:hover .remove-button-container {
-  display: block;
+.sound-component .sound-source-control:hover .remove-button-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.sound-component .bind-hotkey-button {
-  margin-right: 12px;
+.sound-component .sound-source-control:hover .source-icon {
+  display: none;
 }
