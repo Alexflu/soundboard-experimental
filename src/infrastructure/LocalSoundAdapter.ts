@@ -52,9 +52,10 @@ class LocalSoundAdapter {
   removeSound(pathToSoundsJson: string, soundPath: string) {
     try {
       const localSoundsFileJson = this.readSoundsFile(pathToSoundsJson);
-      localSoundsFileJson.soundboardEntries = localSoundsFileJson.soundboardEntries.filter(
-        (sound) => LocalSoundAdapter.toFileUrl(sound.file) !== soundPath
-      );
+      localSoundsFileJson.soundboardEntries =
+        localSoundsFileJson.soundboardEntries.filter(
+          (sound) => LocalSoundAdapter.toFileUrl(sound.file) !== soundPath
+        );
       LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info(`Cannot remove file ${soundPath}`);

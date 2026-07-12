@@ -10,19 +10,19 @@ describe('SoundboardDomainTest', () => {
   const getLocalSounds = jest.fn<Sound[], [string]>();
   const getMyInstantSounds = jest.fn<Promise<Sound[]>, [string]>();
 
-  const localSoundAdapter = ({
+  const localSoundAdapter = {
     getSounds: getLocalSounds,
     addSound: jest.fn(),
     removeSound: jest.fn(),
-  } as unknown) as LocalSoundAdapter;
+  } as unknown as LocalSoundAdapter;
 
-  const myInstantSoundAdapter = ({
+  const myInstantSoundAdapter = {
     getSounds: getMyInstantSounds,
-  } as unknown) as MyInstantSoundAdapter;
+  } as unknown as MyInstantSoundAdapter;
 
-  const userPreferenceAdapter = ({
+  const userPreferenceAdapter = {
     getUserPreferences: jest.fn(() => ({ pathToSoundsJson: '' })),
-  } as unknown) as UserPreferenceAdapter;
+  } as unknown as UserPreferenceAdapter;
 
   const soundboardDomain = new SoundboardDomain(
     localSoundAdapter,

@@ -42,7 +42,7 @@ export const normalizeHotkeySettings = (
 });
 
 export type HotkeySoundMap = Partial<
-  Record<typeof LEGACY_SEARCH_SLOT_ACTIONS[number], HotkeySound>
+  Record<(typeof LEGACY_SEARCH_SLOT_ACTIONS)[number], HotkeySound>
 >;
 
 export const normalizeHotkeySounds = (
