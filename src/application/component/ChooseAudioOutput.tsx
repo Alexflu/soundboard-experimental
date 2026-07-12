@@ -104,7 +104,8 @@ const ChooseAudioOutput = () => {
         setSelectedOption(refreshedSelection);
 
         if (
-          refreshedSelection.value.deviceId !== userPreferences.audioOutput.id ||
+          refreshedSelection.value.deviceId !==
+            userPreferences.audioOutput.id ||
           refreshedSelection.label !== userPreferences.audioOutput.name
         ) {
           soundboardDomain.setUserPreferences(

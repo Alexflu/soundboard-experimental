@@ -264,7 +264,7 @@ export class SoundboardDomain {
   }
 
   private playSound(sound: Sound): Player {
-    const audioOutput = this.getUserPreferences().audioOutput;
+    const { audioOutput } = this.getUserPreferences();
     const masterVolume = audioOutput.volume ?? 1;
     Player.setGlobalMasterVolume(masterVolume);
     const player = new Player(sound, audioOutput.id, masterVolume);

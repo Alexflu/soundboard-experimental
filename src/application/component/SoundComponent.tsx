@@ -31,7 +31,7 @@ const SoundComponent = ({
   reloadSounds: () => void;
 }) => {
   const [player] = useState(() => {
-    const audioOutput = soundboardDomain.getUserPreferences().audioOutput;
+    const { audioOutput } = soundboardDomain.getUserPreferences();
     const masterVolume = audioOutput.volume ?? 1;
     Player.setGlobalMasterVolume(masterVolume);
     return new Player(sound, audioOutput.id, masterVolume);
