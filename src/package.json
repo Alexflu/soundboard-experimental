@@ -16,5 +16,6 @@
     "email": "gregoire.lecun@gmail.com",
     "url": "https://github.com/Glecun"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "yarn@4.17.1"
 }
