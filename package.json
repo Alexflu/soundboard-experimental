@@ -184,10 +184,10 @@
     "@types/jest": "^26.0.15",
     "@types/node": "14.14.10",
     "@types/node-fetch": "^2.5.8",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0",
+    "@types/react": "17.0.90",
+    "@types/react-dom": "17.0.26",
     "@types/react-router-dom": "^5.1.6",
-    "@types/react-test-renderer": "^17.0.0",
+    "@types/react-test-renderer": "17.0.9",
     "@types/webpack-env": "^1.15.2",
     "@typescript-eslint/eslint-plugin": "^4.8.1",
     "@typescript-eslint/parser": "^4.8.1",
@@ -307,6 +307,9 @@
     "babel-jest/**/micromatch": "4.0.8",
     "jest/**/@tootallnate/once": "2.0.1",
     "jest/**/uuid": "11.1.1",
-    "webpack-dev-server/**/uuid": "11.1.1"
+    "webpack-dev-server/**/uuid": "11.1.1",
+    "@types/react": "17.0.90",
+    "@types/react-dom": "17.0.26",
+    "@types/react-test-renderer": "17.0.9"
   }
 }
