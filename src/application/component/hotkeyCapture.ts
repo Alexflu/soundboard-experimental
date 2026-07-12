@@ -23,6 +23,41 @@ const SHIFTED_KEY_ALIASES: Record<string, string> = {
   '*': '8',
   '(': '9',
   ')': '0',
+  '+': 'Equal',
+  _: 'Minus',
+  ':': 'Semicolon',
+  '"': 'Quote',
+  '<': 'Comma',
+  '>': 'Period',
+  '?': 'Slash',
+  '~': 'Backquote',
+  '{': 'BracketLeft',
+  '|': 'Backslash',
+  '}': 'BracketRight',
+};
+
+const KEY_ALIASES: Record<string, string> = {
+  ' ': 'Space',
+  ';': 'Semicolon',
+  '=': 'Equal',
+  ',': 'Comma',
+  '-': 'Minus',
+  '.': 'Period',
+  '/': 'Slash',
+  '`': 'Backquote',
+  '[': 'BracketLeft',
+  '\\': 'Backslash',
+  ']': 'BracketRight',
+  "'": 'Quote',
+};
+
+const NUMPAD_CODE_ALIASES: Record<string, string> = {
+  NumpadMultiply: 'NumpadMultiply',
+  NumpadAdd: 'NumpadAdd',
+  NumpadSubtract: 'NumpadSubtract',
+  NumpadDecimal: 'NumpadDecimal',
+  NumpadDivide: 'NumpadDivide',
+  NumpadEnter: 'NumpadEnter',
 };
 
 const normalizeModifier = (modifier: string) =>
@@ -39,7 +74,17 @@ const normalizeEventKey = (event: KeyboardEvent): string => {
     return letterMatch[1];
   }
 
-  return SHIFTED_KEY_ALIASES[event.key] || event.key;
+  const numpadDigitMatch = event.code?.match(/^Numpad([0-9])$/);
+  if (numpadDigitMatch) {
+    return `Numpad${numpadDigitMatch[1]}`;
+  }
+
+  return (
+    NUMPAD_CODE_ALIASES[event.code] ||
+    SHIFTED_KEY_ALIASES[event.key] ||
+    KEY_ALIASES[event.key] ||
+    event.key
+  );
 };
 
 export const normalizeHotkey = (
@@ -95,6 +140,7 @@ export const captureHotkey = ({
     window.removeEventListener('keydown', onKeyDown, true);
     window.removeEventListener('pointerdown', onPointerDown, true);
     window.clearTimeout(timeoutId);
+    ipcRenderer?.send('shortcut:resume');
     window.dispatchEvent(new Event('soundboard:hotkey-capture-ended'));
   };
 
