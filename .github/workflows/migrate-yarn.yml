@@ -74,12 +74,12 @@ jobs:
             .replace(
               '          yarn install --frozen-lockfile --ignore-scripts --network-timeout 300000 *> install.log',
               '          $env:YARN_ENABLE_SCRIPTS = "false"\n' +
-                '          yarn install --immutable *> install.log'
+                '          yarn install --immutable --mode=skip-build *> install.log'
             )
             .replace(
               '            yarn --cwd src install --frozen-lockfile --ignore-scripts --network-timeout 300000 *>> install.log\n            $code = $LASTEXITCODE',
               '            Push-Location src\n' +
-                '            yarn install --immutable *>> ../install.log\n' +
+                '            yarn install --immutable --mode=skip-build *>> ../install.log\n' +
                 '            $code = $LASTEXITCODE\n' +
                 '            Pop-Location'
             );
@@ -107,7 +107,7 @@ jobs:
           corepack prepare yarn@4.17.1 --activate
           $env:YARN_ENABLE_SCRIPTS = "false"
 
-          yarn install --no-immutable *> root-migration.log
+          yarn install --no-immutable --mode=skip-build *> root-migration.log
           $rootCode = $LASTEXITCODE
           Get-Content root-migration.log
           if ($rootCode -ne 0) {
@@ -115,7 +115,7 @@ jobs:
           }
 
           Push-Location src
-          yarn install --no-immutable *> ../src-migration.log
+          yarn install --no-immutable --mode=skip-build *> ../src-migration.log
           $srcCode = $LASTEXITCODE
           Pop-Location
           Get-Content src-migration.log
