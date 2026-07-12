@@ -6,7 +6,6 @@ import {
   AudioOutput,
   UserPreferences,
 } from '../../domain/entities/UserPreferences';
-import Player from '../../domain/entities/Player';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
 const formatDeviceLabel = (device: MediaDeviceInfo) => {
@@ -82,12 +81,10 @@ type OptionState = {
 
 const ChooseAudioOutput = () => {
   const initialPreferences = soundboardDomain.getUserPreferences();
-  const initialVolume = initialPreferences.audioOutput.volume ?? 1;
   const [optionsDevices, setOptionsDevices] = useState([] as OptionsDevice[]);
   const [selectedOption, setSelectedOption] = useState(
     OptionsDevice.fromUserPreferences(initialPreferences)
   );
-  const [masterVolume, setMasterVolume] = useState(initialVolume);
 
   const refreshDevices = useCallback(() => {
     navigator?.mediaDevices
@@ -105,8 +102,6 @@ const ChooseAudioOutput = () => {
 
         setOptionsDevices(optionsDevicesResult);
         setSelectedOption(refreshedSelection);
-        setMasterVolume(volume);
-        Player.setGlobalMasterVolume(volume);
 
         if (
           refreshedSelection.value.deviceId !== userPreferences.audioOutput.id ||
@@ -135,20 +130,11 @@ const ChooseAudioOutput = () => {
 
   const onSelect = (selectedOptionValue: OptionsDevice) => {
     setSelectedOption(selectedOptionValue);
+    const preferences = soundboardDomain.getUserPreferences();
     soundboardDomain.setUserPreferences(
-      soundboardDomain
-        .getUserPreferences()
-        .setAudioOutput(selectedOptionValue.toAudioOutput(masterVolume))
-    );
-  };
-
-  const onMasterVolumeChange = (volume: number) => {
-    setMasterVolume(volume);
-    Player.setGlobalMasterVolume(volume);
-    soundboardDomain.setUserPreferences(
-      soundboardDomain
-        .getUserPreferences()
-        .setAudioOutput(selectedOption.toAudioOutput(volume))
+      preferences.setAudioOutput(
+        selectedOptionValue.toAudioOutput(preferences.audioOutput.volume ?? 1)
+      )
     );
   };
 
@@ -184,36 +170,17 @@ const ChooseAudioOutput = () => {
 
   return (
     <div className="choose-audio-output">
-      <div className="audio-output-selector">
-        <span className="label">Choose audio output:</span>
-        <Select<OptionsDevice, false>
-          styles={customStyles}
-          value={selectedOption}
-          onChange={(value: OptionsDevice | null) => {
-            if (value) {
-              onSelect(value);
-            }
-          }}
-          options={optionsDevices}
-        />
-      </div>
-      <div className="master-volume-control">
-        <span>Master volume:</span>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={masterVolume}
-          onChange={(event) =>
-            onMasterVolumeChange(Number(event.target.value))
+      <span className="label">Choose audio output:</span>
+      <Select<OptionsDevice, false>
+        styles={customStyles}
+        value={selectedOption}
+        onChange={(value: OptionsDevice | null) => {
+          if (value) {
+            onSelect(value);
           }
-          aria-label="Master volume"
-        />
-        <span className="master-volume-value">
-          {Math.round(masterVolume * 100)}%
-        </span>
-      </div>
+        }}
+        options={optionsDevices}
+      />
     </div>
   );
 };
