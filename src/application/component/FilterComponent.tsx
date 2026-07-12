@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import { DebounceInput } from 'react-debounce-input';
 import Filters from '../../domain/entities/Filters';
+import MasterVolumeControl from './MasterVolumeControl';
 
 const FilterComponent = ({
   sendFiltersToParent,
@@ -40,6 +41,7 @@ const FilterComponent = ({
           <FaTimes />
         </button>
       )}
+      <MasterVolumeControl />
     </div>
   );
 };
