@@ -34,15 +34,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $headers = @{
-            Authorization = "Bearer $env:GITHUB_TOKEN"
-            Accept = "application/vnd.github+json"
-            "X-GitHub-Api-Version" = "2022-11-28"
+          try {
+            $headers = @{
+              Authorization = "Bearer $env:GITHUB_TOKEN"
+              Accept = "application/vnd.github+json"
+              "X-GitHub-Api-Version" = "2022-11-28"
+            }
+            $uri = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/dependabot/alerts?state=open&per_page=100"
+            Invoke-RestMethod -Headers $headers -Uri $uri |
+              ConvertTo-Json -Depth 100 |
+              Set-Content -Encoding utf8 dependabot-alerts.json
+          } catch {
+            $_ | Out-String | Set-Content -Encoding utf8 dependabot-alerts-error.txt
           }
-          $uri = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/dependabot/alerts?state=open&per_page=100"
-          Invoke-RestMethod -Headers $headers -Uri $uri |
-            ConvertTo-Json -Depth 100 |
-            Set-Content -Encoding utf8 dependabot-alerts.json
 
       - name: Run Yarn audit
         shell: pwsh
@@ -63,5 +67,6 @@ jobs:
           name: security-inventory
           path: |
             dependabot-alerts.json
+            dependabot-alerts-error.txt
             yarn-audit.json
             yarn-outdated.json
