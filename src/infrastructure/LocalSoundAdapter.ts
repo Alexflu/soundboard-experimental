@@ -7,6 +7,8 @@ import LocalSoundFileJson, {
 import LocalSoundJson from './dto/LocalSoundJson';
 import Sound from '../domain/entities/Sound';
 
+type DropPosition = 'before' | 'after';
+
 class LocalSoundAdapter {
   getSounds(pathToSoundsJson: string): Sound[] {
     const localSoundsFileJson = this.readSoundsFile(pathToSoundsJson);
@@ -77,7 +79,8 @@ class LocalSoundAdapter {
   reorderSounds(
     pathToSoundsJson: string,
     sourceSoundPath: string,
-    targetSoundPath: string
+    targetSoundPath: string,
+    position: DropPosition = 'after'
   ) {
     if (sourceSoundPath === targetSoundPath) {
       return;
@@ -90,16 +93,24 @@ class LocalSoundAdapter {
         entries,
         sourceSoundPath
       );
-      const targetIndex = LocalSoundAdapter.findEntryIndex(
-        entries,
-        targetSoundPath
-      );
-      if (sourceIndex < 0 || targetIndex < 0) {
+      if (sourceIndex < 0) {
         return;
       }
 
       const [movedEntry] = entries.splice(sourceIndex, 1);
-      entries.splice(targetIndex, 0, movedEntry);
+      const targetIndex = LocalSoundAdapter.findEntryIndex(
+        entries,
+        targetSoundPath
+      );
+      if (targetIndex < 0) {
+        return;
+      }
+
+      entries.splice(
+        targetIndex + (position === 'after' ? 1 : 0),
+        0,
+        movedEntry
+      );
       LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
     } catch (error) {
       toast.info('Cannot reorder sounds');
