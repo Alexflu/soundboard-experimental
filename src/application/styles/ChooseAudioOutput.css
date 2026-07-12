@@ -1,10 +1,32 @@
 .choose-audio-output {
   margin-bottom: 12px;
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.choose-audio-output .audio-output-selector,
+.choose-audio-output .master-volume-control {
+  display: flex;
   align-items: center;
   width: 100%;
 }
 
 .choose-audio-output .label {
   font-size: 20px;
+}
+
+.choose-audio-output .master-volume-control {
+  gap: 10px;
+}
+
+.choose-audio-output .master-volume-control input {
+  width: 260px;
+}
+
+.choose-audio-output .master-volume-value {
+  min-width: 42px;
+  color: #bdbdbd;
 }
