@@ -137,10 +137,11 @@ jobs:
       - name: Commit Yarn migration
         shell: pwsh
         run: |
+          Remove-Item root-migration.log, src-migration.log -Force -ErrorAction SilentlyContinue
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json src/package.json yarn.lock src/yarn.lock .yarnrc.yml .gitignore .github/workflows/test.yml
+          git add -A
           if (-not (git diff --cached --quiet)) {
-            git commit -m "chore(deps): migrate to Yarn 4.17.1"
+            git commit --no-verify -m "chore(deps): migrate to Yarn 4.17.1"
             git push origin "HEAD:$env:GITHUB_HEAD_REF"
           }
