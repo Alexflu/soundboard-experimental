@@ -4,11 +4,24 @@ module.exports = {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
     '@typescript-eslint/ban-ts-comment': 'warn',
+    '@typescript-eslint/no-unused-vars': 'warn',
+    'no-unused-vars': 'off',
+    'no-use-before-define': 'off',
     'max-classes-per-file': 'warn',
     'class-methods-use-this': 'warn',
     'max-len': ['error', { code: 130 }],
     'array-element-newline': ['error', 'consistent'],
     'array-bracket-newline': ['error', 'consistent'],
+    'import/extensions': [
+      'error',
+      'ignorePackages',
+      { js: 'never', jsx: 'never', ts: 'never', tsx: 'never' },
+    ],
+    'react/jsx-filename-extension': [
+      'error',
+      { extensions: ['.jsx', '.tsx'] },
+    ],
+    'react/function-component-definition': 'off',
     'lines-between-class-members': [
       'error',
       'always',
@@ -18,9 +31,6 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
-    project: './tsconfig.json',
-    tsconfigRootDir: __dirname,
-    createDefaultProgram: true,
   },
   settings: {
     'import/resolver': {

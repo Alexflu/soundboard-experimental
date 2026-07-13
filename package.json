@@ -191,6 +191,8 @@
     "@types/react-router-dom": "^5.1.6",
     "@types/react-test-renderer": "17.0.9",
     "@types/webpack-env": "^1.15.2",
+    "@typescript-eslint/eslint-plugin": "6.7.0",
+    "@typescript-eslint/parser": "6.7.0",
     "babel-jest": "29.7.0",
     "babel-loader": "^10.1.1",
     "babel-plugin-dev-expression": "^0.2.2",
@@ -267,7 +269,8 @@
         }
       }
     ],
-    "singleQuote": true
+    "singleQuote": true,
+    "trailingComma": "es5"
   },
   "renovate": {
     "extends": [
