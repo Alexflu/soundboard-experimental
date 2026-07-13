@@ -1,9 +1,8 @@
-[96mtsconfig.json[0m:[93m20[0m:[93m25[0m - [91merror[0m[90m TS5107: [0mOption 'moduleResolution=node10' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
-  Visit https://aka.ms/ts6 for migration information.
+[96msrc/App.tsx[0m:[93m4[0m:[93m8[0m - [91merror[0m[90m TS2882: [0mCannot find module or type declarations for side-effect import of './App.global.css'.
 
-[7m20[0m     "moduleResolution": "node",
-[7m  [0m [91m                        ~~~~~~[0m
+[7m4[0m import './App.global.css';
+[7m [0m [91m       ~~~~~~~~~~~~~~~~~~[0m
 
 
-Found 1 error in tsconfig.json[90m:20[0m
+Found 1 error in src/App.tsx[90m:4[0m
 
