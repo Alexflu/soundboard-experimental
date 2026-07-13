@@ -21,26 +21,35 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js, NPM and Yarn
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24.15.0
-          cache: yarn
+
+      - name: Activate Yarn
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack prepare yarn@4.17.1 --activate
+          yarn --version
 
       - name: Install dependencies
         id: install
         continue-on-error: true
         shell: pwsh
         run: |
-          yarn install --frozen-lockfile --ignore-scripts --network-timeout 300000 *> install.log
+          $env:YARN_ENABLE_SCRIPTS = "false"
+          yarn install --immutable --mode=skip-build *> install.log
           $code = $LASTEXITCODE
           if ($code -eq 0) {
             node node_modules/electron/install.js *>> install.log
             $code = $LASTEXITCODE
           }
           if ($code -eq 0) {
-            yarn --cwd src install --frozen-lockfile --ignore-scripts --network-timeout 300000 *>> install.log
+            Push-Location src
+            yarn install --immutable --mode=skip-build *>> ../install.log
             $code = $LASTEXITCODE
+            Pop-Location
           }
           Get-Content install.log
           exit $code
