@@ -19,6 +19,11 @@ module.exports = (api) => {
   const development = api.env(developmentEnvironments);
 
   return {
+    // Keep public and private field transforms on the same Babel assumptions.
+    assumptions: {
+      setPublicClassFields: true,
+      privateFieldsAsProperties: true,
+    },
     presets: [
       // @babel/preset-env will automatically target our browserslist targets
       require('@babel/preset-env'),
@@ -53,7 +58,7 @@ module.exports = (api) => {
       // Stage 3
       require('@babel/plugin-syntax-dynamic-import'),
       require('@babel/plugin-syntax-import-meta'),
-      [require('@babel/plugin-proposal-class-properties'), { loose: true }],
+      require('@babel/plugin-transform-class-properties'),
       require('@babel/plugin-proposal-json-strings'),
 
       ...(development ? developmentPlugins : productionPlugins),

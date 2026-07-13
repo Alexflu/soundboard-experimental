@@ -9,9 +9,7 @@ export const rendererModuleRules = [
           // On Node/OpenSSL 3+, babel-loader's on-disk cache hash can fail in older
           // dependency stacks. Keep renderer transpilation uncached to avoid that path.
           cacheDirectory: false,
-          plugins: [
-            'react-refresh/babel',
-          ].filter(Boolean),
+          plugins: ['react-refresh/babel'].filter(Boolean),
         },
       },
     ],
@@ -63,6 +61,9 @@ export const rendererModuleRules = [
       },
       {
         loader: 'sass-loader',
+        options: {
+          api: 'modern',
+        },
       },
     ],
   },
@@ -88,6 +89,9 @@ export const rendererModuleRules = [
       },
       {
         loader: 'sass-loader',
+        options: {
+          api: 'modern',
+        },
       },
     ],
   },
