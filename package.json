@@ -150,7 +150,10 @@
     "testEnvironment": "jsdom",
     "testEnvironmentOptions": {
       "url": "http://localhost/"
-    }
+    },
+    "setupFiles": [
+      "<rootDir>/.erb/scripts/JestSetup.js"
+    ]
   },
   "devDependencies": {
     "@babel/core": "^7",
