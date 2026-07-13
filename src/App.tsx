@@ -2,7 +2,7 @@ import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import './App.global.css';
-import { FaCog } from 'react-icons/fa/';
+import { FaCog } from 'react-icons/fa';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import SoundsView from './application/view/SoundsView';
 import SettingsView from './application/view/SettingsView';
@@ -216,14 +216,6 @@ export default function App() {
     shortcutRegistrationRevision,
   ]);
 
-  const soundsView = (
-    <SoundsView
-      stopAllSounds={stopAllSounds}
-      registerSound={registerSound}
-      setGlobalFilters={setFilters}
-    />
-  );
-
   return (
     <Router>
       <div className="app-view">
@@ -246,7 +238,16 @@ export default function App() {
           />
           <Routes>
             <Route path="/settings" element={<SettingsView />} />
-            <Route path="*" element={soundsView} />
+            <Route
+              path="/"
+              element={
+                <SoundsView
+                  stopAllSounds={stopAllSounds}
+                  registerSound={registerSound}
+                  setGlobalFilters={setFilters}
+                />
+              }
+            />
           </Routes>
         </div>
       </div>
