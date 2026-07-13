@@ -1,5 +1,6 @@
 module.exports = {
   extends: 'erb',
+  plugins: ['@typescript-eslint'],
   rules: {
     // Permit dependencies resolved through the nested app package.
     'import/no-extraneous-dependencies': 'off',
@@ -7,6 +8,11 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': 'warn',
     'no-unused-vars': 'off',
     'no-use-before-define': 'off',
+    'no-shadow': 'off',
+    'default-param-last': 'off',
+    'no-undef': 'off',
+    'no-useless-constructor': 'off',
+    'no-empty-function': 'off',
     'max-classes-per-file': 'warn',
     'class-methods-use-this': 'warn',
     'max-len': ['error', { code: 130 }],
@@ -17,10 +23,7 @@ module.exports = {
       'ignorePackages',
       { js: 'never', jsx: 'never', ts: 'never', tsx: 'never' },
     ],
-    'react/jsx-filename-extension': [
-      'error',
-      { extensions: ['.jsx', '.tsx'] },
-    ],
+    'react/jsx-filename-extension': ['error', { extensions: ['.jsx', '.tsx'] }],
     'react/function-component-definition': 'off',
     'lines-between-class-members': [
       'error',
