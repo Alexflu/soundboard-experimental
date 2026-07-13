@@ -30,11 +30,7 @@ export default merge(baseConfig, {
 
   target: 'electron-renderer',
 
-  entry: [
-    'core-js',
-    'regenerator-runtime/runtime',
-    path.join(__dirname, '../../src/index.tsx'),
-  ],
+  entry: path.join(__dirname, '../../src/index.tsx'),
 
   output: {
     path: path.join(__dirname, '../../src/dist'),
@@ -50,7 +46,7 @@ export default merge(baseConfig, {
           {
             loader: MiniCssExtractPlugin.loader,
             options: {
-              // `./dist` can't be inerhited for publicPath for styles. Otherwise generated paths will be ./dist/dist
+              // `./dist` cannot be inherited here or generated paths become ./dist/dist.
               publicPath: './',
             },
           },
@@ -63,7 +59,6 @@ export default merge(baseConfig, {
           },
         ],
       },
-      // Fonts (webpack 5 asset modules)
       {
         test: /\.(woff2?|otf|ttf|eot)(\?v=\d+\.\d+\.\d+)?$/,
         type: 'asset',
@@ -73,7 +68,6 @@ export default merge(baseConfig, {
           },
         },
       },
-      // SVG
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
         type: 'asset',
@@ -83,7 +77,6 @@ export default merge(baseConfig, {
           },
         },
       },
-      // Common Image Formats
       {
         test: /\.(?:ico|gif|png|jpg|jpeg|webp)$/,
         type: 'asset',
@@ -102,15 +95,6 @@ export default merge(baseConfig, {
   },
 
   plugins: [
-    /**
-     * Create global constants which can be configured at compile time.
-     *
-     * Useful for allowing different behaviour between development builds and
-     * release builds
-     *
-     * NODE_ENV should be production so that modules do not perform certain
-     * development checks
-     */
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'production',
       DEBUG_PROD: false,

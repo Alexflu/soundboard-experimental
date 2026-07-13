@@ -4,7 +4,6 @@ module.exports = {
     'airbnb/hooks',
     'plugin:jest/recommended',
     'plugin:promise/recommended',
-    'plugin:compat/recommended',
     'plugin:prettier/recommended',
   ],
   env: {
