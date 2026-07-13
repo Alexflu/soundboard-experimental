@@ -1,5 +1,17 @@
 module.exports = {
-  extends: 'erb',
+  extends: [
+    'airbnb',
+    'airbnb/hooks',
+    'plugin:jest/recommended',
+    'plugin:promise/recommended',
+    'plugin:compat/recommended',
+    'plugin:prettier/recommended',
+  ],
+  env: {
+    browser: true,
+    node: true,
+  },
+  parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint'],
   rules: {
     // Allow dependencies resolved through the nested app package.
@@ -13,6 +25,7 @@ module.exports = {
     'no-undef': 'off',
     'no-useless-constructor': 'off',
     'no-empty-function': 'off',
+    'no-param-reassign': ['error', { props: false }],
     'max-classes-per-file': 'warn',
     'class-methods-use-this': 'warn',
     'max-len': ['error', { code: 130 }],
