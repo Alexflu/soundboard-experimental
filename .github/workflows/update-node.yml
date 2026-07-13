@@ -1,4 +1,4 @@
-name: Update Node.js
+name: Update Node.js engines
 
 on:
   pull_request:
@@ -19,12 +19,11 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
 
-      - name: Update Node.js configuration
+      - name: Update package engines
         shell: pwsh
         run: |
           @'
           const fs = require('fs');
-
           const packagePath = 'package.json';
           const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
           packageJson.engines = {
@@ -32,31 +31,13 @@ jobs:
             yarn: '>=4.17.1 <5'
           };
           fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
-
-          const testPath = '.github/workflows/test.yml';
-          const testWorkflow = fs
-            .readFileSync(testPath, 'utf8')
-            .replaceAll('24.15.0', '24.18.0');
-          fs.writeFileSync(testPath, testWorkflow);
-
-          const publishPath = '.github/workflows/publish.yml';
-          let publishWorkflow = fs.readFileSync(publishPath, 'utf8');
-          publishWorkflow = publishWorkflow.replace(
-            `      - name: Install Node, NPM and Yarn\n        uses: actions/setup-node@v4\n        with:\n          node-version: 24.15.0\n          cache: yarn\n\n      - name: Install dependencies\n        run: |\n          yarn install --frozen-lockfile --network-timeout 300000`,
-            `      - name: Install Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: 24.18.0\n\n      - name: Activate Yarn\n        run: |\n          corepack enable\n          corepack prepare yarn@4.17.1 --activate\n          yarn --version\n\n      - name: Install dependencies\n        env:\n          YARN_ENABLE_SCRIPTS: "false"\n        run: |\n          yarn install --immutable --mode=skip-build\n          node node_modules/electron/install.js\n          cd src\n          yarn install --immutable --mode=skip-build`
-          );
-          fs.writeFileSync(publishPath, publishWorkflow);
-
-          fs.writeFileSync('.node-version', '24.18.0\n');
           '@ | node
 
-          Remove-Item .github/workflows/update-node.yml
-
-      - name: Commit changes
+      - name: Commit package update
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit --no-verify -m "chore: update Node.js to 24.18.0"
+          git add package.json
+          git commit --no-verify -m "chore: require Node.js 24.18.0"
           git push origin "HEAD:$env:GITHUB_HEAD_REF"
