@@ -53,6 +53,7 @@ npm-debug.log.*
 /.github/pfx/
 
 sounds.json
+user-preferences.json
 
 # Yarn Modern
 **/.yarn/install-state.gz
