@@ -1,7 +1,7 @@
 module.exports = {
   extends: 'erb',
   rules: {
-    // A temporary hack related to IDE not resolving correct package.json
+    // Permit dependencies resolved through the nested app package.
     'import/no-extraneous-dependencies': 'off',
     '@typescript-eslint/ban-ts-comment': 'warn',
     '@typescript-eslint/no-unused-vars': 'warn',
