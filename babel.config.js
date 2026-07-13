@@ -4,14 +4,7 @@ const developmentEnvironments = ['development', 'test'];
 
 const developmentPlugins = [require('@babel/plugin-transform-runtime')];
 
-const productionPlugins = [
-  require('babel-plugin-dev-expression'),
-
-  // babel-preset-react-optimize
-  require('@babel/plugin-transform-react-constant-elements'),
-  require('@babel/plugin-transform-react-inline-elements'),
-  require('babel-plugin-transform-react-remove-prop-types'),
-];
+const productionPlugins = [require('babel-plugin-dev-expression')];
 
 module.exports = (api) => {
   // See docs about api at https://babeljs.io/docs/en/config-files#apicache
@@ -28,7 +21,7 @@ module.exports = (api) => {
       // @babel/preset-env will automatically target our browserslist targets
       require('@babel/preset-env'),
       require('@babel/preset-typescript'),
-      [require('@babel/preset-react'), { development }],
+      [require('@babel/preset-react'), { development, runtime: 'automatic' }],
     ],
     plugins: [
       // Stage 0
