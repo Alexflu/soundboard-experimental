@@ -60,7 +60,8 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add package.json yarn.lock typescript-update.log
+          git add package.json yarn.lock
+          git add -f typescript-update.log
           if (-not (git diff --cached --quiet)) {
             git commit -m "chore(deps): modernize TypeScript stack"
             git push
