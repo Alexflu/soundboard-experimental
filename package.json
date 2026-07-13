@@ -264,9 +264,8 @@
     "source-map-support": "^0.5.19"
   },
   "engines": {
-    "node": ">=10.x",
-    "npm": ">=6.x",
-    "yarn": ">=1.21.3"
+    "node": ">=24.18.0 <25",
+    "yarn": ">=4.17.1 <5"
   },
   "packageManager": "yarn@4.17.1",
   "browserslist": [],
