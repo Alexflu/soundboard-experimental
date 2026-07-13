@@ -49,6 +49,7 @@ jobs:
           '@ | Set-Content .update-typescript-stack.cjs
           node .update-typescript-stack.cjs
           Remove-Item .update-typescript-stack.cjs
+          $env:YARN_ENABLE_IMMUTABLE_INSTALLS = 'false'
           yarn install *>&1 | Tee-Object -FilePath typescript-update.log
           $installExit = $LASTEXITCODE
           "install exit code: $installExit" | Add-Content typescript-update.log
