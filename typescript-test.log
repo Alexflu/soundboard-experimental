@@ -1,0 +1,64 @@
+PASS src/domain/entities/UserPreferences.test.ts
+PASS src/infrastructure/PassiveShortcutManager.test.ts
+FAIL src/domain/SoundboardDomain.test.ts
+  ● Test suite failed to run
+
+    Electron failed to install correctly, please delete node_modules/electron and try installing again
+
+    > 1 | import { app } from 'electron';
+        | ^
+      2 | import fs from 'fs';
+      3 | import {
+      4 |   AudioOutput,
+
+      at getElectronPath (node_modules/electron/index.js:17:11)
+      at Object.<anonymous> (node_modules/electron/index.js:23:18)
+      at Object.require (src/infrastructure/UserPreferenceAdapter.ts:1:1)
+      at Object.require (src/domain/SoundboardDomain.ts:7:1)
+      at Object.require (src/domain/SoundboardDomain.test.ts:1:1)
+
+PASS src/infrastructure/LocalSoundAdapter.test.ts
+PASS src/infrastructure/MyInstantSoundAdapter.test.ts
+PASS src/domain/entities/Filters.test.ts
+PASS src/domain/entities/HotkeyPreferences.test.ts
+FAIL src/application/component/hotkeyCapture.test.ts
+  ● Test suite failed to run
+
+    Electron failed to install correctly, please delete node_modules/electron and try installing again
+
+    > 1 | const { ipcRenderer } = require('electron');
+        |                         ^
+      2 |
+      3 | const MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'Meta']);
+      4 |
+
+      at getElectronPath (node_modules/electron/index.js:17:11)
+      at Object.<anonymous> (node_modules/electron/index.js:23:18)
+      at Object.require (src/application/component/hotkeyCapture.ts:1:25)
+      at Object.require (src/application/component/hotkeyCapture.test.ts:1:1)
+
+FAIL src/App.test.tsx
+  ● Test suite failed to run
+
+    Electron failed to install correctly, please delete node_modules/electron and try installing again
+
+    > 1 | import { app } from 'electron';
+        | ^
+      2 | import fs from 'fs';
+      3 | import {
+      4 |   AudioOutput,
+
+      at getElectronPath (node_modules/electron/index.js:17:11)
+      at Object.<anonymous> (node_modules/electron/index.js:23:18)
+      at Object.require (src/infrastructure/UserPreferenceAdapter.ts:1:1)
+      at Object.require (src/domain/SoundboardDomain.ts:7:1)
+      at Object.require (src/application/component/SoundComponent.tsx:6:1)
+      at Object.require (src/application/view/SoundsView.tsx:12:1)
+      at Object.require (src/App.tsx:7:1)
+      at Object.require (src/App.test.tsx:4:1)
+
+Test Suites: 3 failed, 6 passed, 9 total
+Tests:       32 passed, 32 total
+Snapshots:   0 total
+Time:        4.907 s
+Ran all test suites.
