@@ -35,10 +35,7 @@ module.exports = {
       'ignorePackages',
       { js: 'never', jsx: 'never', ts: 'never', tsx: 'never' },
     ],
-    'react/jsx-filename-extension': [
-      'error',
-      { extensions: ['.jsx', '.tsx'] },
-    ],
+    'react/jsx-filename-extension': ['error', { extensions: ['.jsx', '.tsx'] }],
     'react/function-component-definition': 'off',
     'lines-between-class-members': [
       'error',
