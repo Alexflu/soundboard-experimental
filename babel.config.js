@@ -19,6 +19,7 @@ module.exports = (api) => {
   const development = api.env(developmentEnvironments);
 
   return {
+    // Keep public and private field transforms on the same Babel assumptions.
     assumptions: {
       setPublicClassFields: true,
       privateFieldsAsProperties: true,
