@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import './App.global.css';
-import { FaCog } from 'react-icons/fa/';
+import { FaCog } from 'react-icons/fa';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import SoundsView from './application/view/SoundsView';
 import SettingsView from './application/view/SettingsView';
@@ -236,16 +236,19 @@ export default function App() {
             limit={3}
             newestOnTop
           />
-          <Switch>
-            <Route path="/settings" component={SettingsView} />
-            <Route path="/">
-              <SoundsView
-                stopAllSounds={stopAllSounds}
-                registerSound={registerSound}
-                setGlobalFilters={setFilters}
-              />
-            </Route>
-          </Switch>
+          <Routes>
+            <Route path="/settings" element={<SettingsView />} />
+            <Route
+              path="/"
+              element={
+                <SoundsView
+                  stopAllSounds={stopAllSounds}
+                  registerSound={registerSound}
+                  setGlobalFilters={setFilters}
+                />
+              }
+            />
+          </Routes>
         </div>
       </div>
     </Router>
