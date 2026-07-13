@@ -3,6 +3,7 @@
   "productName": "soundboard",
   "version": "0.0.7",
   "description": "soundboard desktop app",
+  "type": "commonjs",
   "main": "./main.prod.js",
   "scripts": {
     "electron-rebuild": "node -r ../.erb/scripts/BabelRegister.js ../.erb/scripts/ElectronRebuild.js",
