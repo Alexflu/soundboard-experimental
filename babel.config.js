@@ -2,6 +2,7 @@
 
 module.exports = (api) => {
   const environment = api.env();
+  const webpack = api.caller((caller) => caller?.name === 'babel-loader');
   const development = environment === 'development' || environment === 'test';
   const test = environment === 'test';
 
@@ -10,7 +11,7 @@ module.exports = (api) => {
       [
         require('@babel/preset-env'),
         {
-          modules: test ? 'commonjs' : false,
+          modules: webpack ? false : 'commonjs',
           targets: test ? { node: 'current' } : { electron: '41' },
         },
       ],
