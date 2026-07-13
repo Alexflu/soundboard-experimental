@@ -24,13 +24,11 @@ type UiohookModule = {
   UiohookKey: Record<string, number>;
 };
 
-export default class AppUpdater {
-  constructor() {
-    log.transports.file.level = 'info';
-    autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify();
-  }
-}
+const initializeAppUpdater = () => {
+  log.transports.file.level = 'info';
+  autoUpdater.logger = log;
+  autoUpdater.checkForUpdatesAndNotify();
+};
 
 let mainWindow: BrowserWindow | null = null;
 let shortcutManager: PassiveShortcutManager | null = null;
@@ -229,7 +227,7 @@ const createWindow = async () => {
   });
 
   if (app.isPackaged) {
-    new AppUpdater();
+    initializeAppUpdater();
   }
 };
 
@@ -255,7 +253,10 @@ app.on('will-quit', () => {
   ipcMain.removeHandler('dialog:choose-sounds-json');
 });
 
-app.whenReady().then(createWindow).catch((error) => log.error(error));
+app
+  .whenReady()
+  .then(createWindow)
+  .catch((error) => log.error(error));
 
 app.on('activate', () => {
   if (mainWindow === null) {
