@@ -91,7 +91,7 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          npx --yes -p typescript@4.9.5 tsc --noEmit *> typecheck.log
+          yarn exec tsc --noEmit *> typecheck.log
           $code = $LASTEXITCODE
           Get-Content typecheck.log
           exit $code
