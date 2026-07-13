@@ -26,60 +26,40 @@ jobs:
         shell: pwsh
         run: corepack enable
 
-      - name: Update dependency graph
-        id: dependency-update
-        continue-on-error: true
+      - name: Install dependencies
         shell: pwsh
         run: |
-          @'
-          const fs = require('fs');
-          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          Object.assign(packageJson.devDependencies, {
-            '@types/node': '^24.0.0',
-            '@typescript-eslint/eslint-plugin': '8.63.0',
-            '@typescript-eslint/parser': '8.63.0',
-            eslint: '8.57.1',
-            'eslint-config-airbnb': '19.0.4',
-            'eslint-config-prettier': '9.1.2',
-            'eslint-plugin-jest': '29.15.4',
-            typescript: '6.0.3',
-          });
-          delete packageJson.devDependencies['eslint-config-erb'];
-          fs.writeFileSync('package.json', `${JSON.stringify(packageJson, null, 2)}\n`);
-          '@ | Set-Content .update-typescript-stack.cjs
-          node .update-typescript-stack.cjs
-          Remove-Item .update-typescript-stack.cjs
           $env:YARN_ENABLE_IMMUTABLE_INSTALLS = 'false'
-          yarn install *>&1 | Tee-Object -FilePath typescript-update.log
-          $installExit = $LASTEXITCODE
-          "install exit code: $installExit" | Add-Content typescript-update.log
-          exit $installExit
-
-      - name: Commit generated dependency files and diagnostics
-        if: always()
-        shell: pwsh
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add package.json yarn.lock
-          git add -f typescript-update.log
-          if (-not (git diff --cached --quiet)) {
-            git commit -m "chore(deps): modernize TypeScript stack"
-            git push
-          }
-
-      - name: Stop after dependency update failure
-        if: steps.dependency-update.outcome == 'failure'
-        shell: pwsh
-        run: exit 1
+          yarn install
 
       - name: Lint
         shell: pwsh
         run: yarn lint
 
       - name: Type check
+        id: typecheck
+        continue-on-error: true
         shell: pwsh
-        run: yarn exec tsc --noEmit
+        run: |
+          yarn exec tsc --noEmit *>&1 | Tee-Object -FilePath typescript-typecheck.log
+          exit $LASTEXITCODE
+
+      - name: Commit type-check diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -f typescript-typecheck.log
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "ci: capture TypeScript diagnostics"
+            git push
+          }
+
+      - name: Stop after type-check failure
+        if: steps.typecheck.outcome == 'failure'
+        shell: pwsh
+        run: exit 1
 
       - name: Test
         shell: pwsh
