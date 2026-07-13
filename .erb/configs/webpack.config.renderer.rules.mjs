@@ -62,8 +62,11 @@ export const rendererModuleRules = [
         },
       },
       {
-        loader: 'sass-loader',
+      loader: 'sass-loader',
+      options: {
+        api: 'modern',
       },
+    },
     ],
   },
   // SASS support - compile all other .scss files and pipe it to style.css
@@ -87,8 +90,11 @@ export const rendererModuleRules = [
         },
       },
       {
-        loader: 'sass-loader',
+      loader: 'sass-loader',
+      options: {
+        api: 'modern',
       },
+    },
     ],
   },
   // Fonts (webpack 5 asset modules)

@@ -56,7 +56,12 @@ export default merge(baseConfig, {
             },
           },
           'css-loader',
-          'sass-loader'
+          {
+  loader: 'sass-loader',
+  options: {
+    api: 'modern',
+  },
+}
         ],
       },
       // Fonts (webpack 5 asset modules)
