@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - chore/peer-dependency-cleanup
+  pull_request:
+    branches:
+      - Main
 
 permissions:
   contents: read
 
 jobs:
   diagnose:
+    if: github.event_name == 'push' || github.head_ref == 'chore/peer-dependency-cleanup'
     runs-on: windows-2022
 
     steps:
