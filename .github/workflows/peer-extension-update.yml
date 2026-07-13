@@ -1,0 +1,41 @@
+name: Apply peer metadata extensions
+
+on:
+  pull_request:
+    branches:
+      - Main
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.head_ref == 'chore/peer-dependency-cleanup' && github.actor != 'github-actions[bot]'
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/peer-dependency-cleanup
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+      - name: Activate Yarn
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack prepare yarn@4.17.1 --activate
+      - name: Refresh lockfile
+        shell: pwsh
+        env:
+          YARN_ENABLE_SCRIPTS: "false"
+        run: yarn install
+      - name: Commit changes
+        shell: pwsh
+        run: |
+          Remove-Item .github/workflows/final-peer-diagnostics.yml -Force
+          Remove-Item .github/workflows/peer-extension-update.yml -Force
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit --no-verify -m "chore(deps): apply peer metadata extensions"
+          git push origin HEAD:chore/peer-dependency-cleanup
