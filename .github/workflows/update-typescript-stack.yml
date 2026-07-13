@@ -1,0 +1,78 @@
+name: Update TypeScript stack
+
+on:
+  pull_request:
+    branches:
+      - Main
+
+permissions:
+  contents: write
+
+jobs:
+  update-and-validate:
+    if: github.head_ref == 'agent/modernize-typescript-stack'
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          cache: yarn
+
+      - name: Activate Yarn
+        shell: pwsh
+        run: corepack enable
+
+      - name: Update dependency graph
+        shell: pwsh
+        run: |
+          @'
+          const fs = require('fs');
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          Object.assign(packageJson.devDependencies, {
+            '@types/node': '^24.0.0',
+            '@typescript-eslint/eslint-plugin': '8.63.0',
+            '@typescript-eslint/parser': '8.63.0',
+            eslint: '8.57.1',
+            'eslint-config-airbnb': '19.0.4',
+            'eslint-config-prettier': '9.1.2',
+            'eslint-plugin-jest': '29.15.4',
+            typescript: '6.0.3',
+          });
+          delete packageJson.devDependencies['eslint-config-erb'];
+          fs.writeFileSync('package.json', `${JSON.stringify(packageJson, null, 2)}\n`);
+          '@ | Set-Content .update-typescript-stack.cjs
+          node .update-typescript-stack.cjs
+          Remove-Item .update-typescript-stack.cjs
+          yarn install
+
+      - name: Commit generated dependency files
+        shell: pwsh
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package.json yarn.lock
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "chore(deps): modernize TypeScript stack"
+            git push
+          }
+
+      - name: Lint
+        shell: pwsh
+        run: yarn lint
+
+      - name: Type check
+        shell: pwsh
+        run: yarn exec tsc --noEmit
+
+      - name: Test
+        shell: pwsh
+        run: yarn test --runInBand
+
+      - name: Package
+        shell: pwsh
+        run: yarn package
