@@ -37,33 +37,33 @@ jobs:
         run: yarn lint
 
       - name: Type check
-        id: typecheck
+        shell: pwsh
+        run: yarn exec tsc --noEmit
+
+      - name: Test
+        id: test
         continue-on-error: true
         shell: pwsh
         run: |
-          yarn exec tsc --noEmit *>&1 | Tee-Object -FilePath typescript-typecheck.log
+          yarn test --runInBand *>&1 | Tee-Object -FilePath typescript-test.log
           exit $LASTEXITCODE
 
-      - name: Commit type-check diagnostics
+      - name: Commit test diagnostics
         if: always()
         shell: pwsh
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -f typescript-typecheck.log
+          git add -f typescript-test.log
           if (-not (git diff --cached --quiet)) {
-            git commit -m "ci: capture TypeScript diagnostics"
+            git commit -m "ci: capture TypeScript test diagnostics"
             git push
           }
 
-      - name: Stop after type-check failure
-        if: steps.typecheck.outcome == 'failure'
+      - name: Stop after test failure
+        if: steps.test.outcome == 'failure'
         shell: pwsh
         run: exit 1
-
-      - name: Test
-        shell: pwsh
-        run: yarn test --runInBand
 
       - name: Package
         shell: pwsh
