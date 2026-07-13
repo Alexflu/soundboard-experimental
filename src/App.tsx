@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import './App.global.css';
 import { FaCog } from 'react-icons/fa/';
@@ -216,6 +216,14 @@ export default function App() {
     shortcutRegistrationRevision,
   ]);
 
+  const soundsView = (
+    <SoundsView
+      stopAllSounds={stopAllSounds}
+      registerSound={registerSound}
+      setGlobalFilters={setFilters}
+    />
+  );
+
   return (
     <Router>
       <div className="app-view">
@@ -236,16 +244,10 @@ export default function App() {
             limit={3}
             newestOnTop
           />
-          <Switch>
-            <Route path="/settings" component={SettingsView} />
-            <Route path="/">
-              <SoundsView
-                stopAllSounds={stopAllSounds}
-                registerSound={registerSound}
-                setGlobalFilters={setFilters}
-              />
-            </Route>
-          </Switch>
+          <Routes>
+            <Route path="/settings" element={<SettingsView />} />
+            <Route path="*" element={soundsView} />
+          </Routes>
         </div>
       </div>
     </Router>
