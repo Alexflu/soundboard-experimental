@@ -6,6 +6,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default function deleteSourceMaps() {
-  rimrafSync(path.join(__dirname, '../../src/dist/*.js.map'));
-  rimrafSync(path.join(__dirname, '../../src/*.js.map'));
+  rimrafSync(path.join(__dirname, '../../src/dist/*.js.map'), { glob: true });
+  rimrafSync(path.join(__dirname, '../../src/*.js.map'), { glob: true });
 }
