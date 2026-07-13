@@ -27,6 +27,8 @@ jobs:
         run: corepack enable
 
       - name: Update dependency graph
+        id: dependency-update
+        continue-on-error: true
         shell: pwsh
         run: |
           @'
@@ -47,18 +49,27 @@ jobs:
           '@ | Set-Content .update-typescript-stack.cjs
           node .update-typescript-stack.cjs
           Remove-Item .update-typescript-stack.cjs
-          yarn install
+          yarn install *>&1 | Tee-Object -FilePath typescript-update.log
+          $installExit = $LASTEXITCODE
+          "install exit code: $installExit" | Add-Content typescript-update.log
+          exit $installExit
 
-      - name: Commit generated dependency files
+      - name: Commit generated dependency files and diagnostics
+        if: always()
         shell: pwsh
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add package.json yarn.lock
+          git add package.json yarn.lock typescript-update.log
           if (-not (git diff --cached --quiet)) {
             git commit -m "chore(deps): modernize TypeScript stack"
             git push
           }
+
+      - name: Stop after dependency update failure
+        if: steps.dependency-update.outcome == 'failure'
+        shell: pwsh
+        run: exit 1
 
       - name: Lint
         shell: pwsh
