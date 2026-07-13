@@ -2,7 +2,7 @@ module.exports = {
   extends: 'erb',
   plugins: ['@typescript-eslint'],
   rules: {
-    // Permit dependencies resolved through the nested app package.
+    // Allow dependencies resolved through the nested app package.
     'import/no-extraneous-dependencies': 'off',
     '@typescript-eslint/ban-ts-comment': 'warn',
     '@typescript-eslint/no-unused-vars': 'warn',
