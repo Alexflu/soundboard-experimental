@@ -20,9 +20,8 @@ const __dirname = path.dirname(__filename);
 CheckNodeEnv('production');
 DeleteSourceMaps();
 
-const devtoolsConfig = process.env.DEBUG_PROD === 'true' ? {
-  devtool: 'source-map'
-} : {};
+const devtoolsConfig =
+  process.env.DEBUG_PROD === 'true' ? { devtool: 'source-map' } : {};
 
 export default merge(baseConfig, {
   ...devtoolsConfig,
@@ -57,11 +56,11 @@ export default merge(baseConfig, {
           },
           'css-loader',
           {
-  loader: 'sass-loader',
-  options: {
-    api: 'modern',
-  },
-}
+            loader: 'sass-loader',
+            options: {
+              api: 'modern',
+            },
+          },
         ],
       },
       // Fonts (webpack 5 asset modules)
@@ -94,13 +93,12 @@ export default merge(baseConfig, {
 
   optimization: {
     minimize: true,
-    minimizer:
-      [
-        new TerserPlugin({
-          parallel: true,
-        }),
-        new CssMinimizerPlugin(),
-      ],
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+      }),
+      new CssMinimizerPlugin(),
+    ],
   },
 
   plugins: [
