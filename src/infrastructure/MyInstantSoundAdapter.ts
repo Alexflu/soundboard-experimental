@@ -26,7 +26,7 @@ class MyInstantSoundAdapter {
               .map((myInstantSoundJson) => myInstantSoundJson.toSound())
           );
       }
-    } catch (error) {
+    } catch {
       toast.error('Cannot get myInstant Sounds');
     }
     return Promise.resolve([]);
