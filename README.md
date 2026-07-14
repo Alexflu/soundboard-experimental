@@ -1,101 +1,76 @@
 # Soundboard
 
-A desktop soundboard built with Electron, React, and TypeScript. Play local audio or search MyInstants, choose an output device, and trigger sounds through customizable system-wide hotkeys.
+A desktop soundboard for playing local audio or sounds from [MyInstants](https://www.myinstants.com/), with selectable audio output and system-wide hotkeys.
+
+## What's new in this overhaul
+
+- Assign individual sounds to customizable global hotkeys.
+- Enable single-key piano-style bindings.
+- Optionally assign multiple sounds to one hotkey.
+- Choose whether random playback uses local or hotkey-bound sounds.
+- Reorder sounds and adjust individual volume levels.
+- Modernized Electron, React, TypeScript, build, testing, and packaging systems.
 
 ## Features
 
-- Add, remove, reorder, and play local sounds.
-- Search and play sounds from [MyInstants](https://www.myinstants.com/) with a minimum two-character search.
-- Choose the audio output device used by the soundboard.
-- Assign individual sounds to customizable global hotkeys.
-- Optionally enable single-key piano-style bindings.
-- Optionally assign multiple sounds to the same hotkey.
-- Choose whether random playback uses local sounds or hotkey-bound sounds.
-- Adjust local and hotkey-bound sound volume.
-- Stop all active sounds with a hotkey.
+- Add, remove, search, and play sounds.
+- Choose the soundboard's audio output device.
 - Use an EXP Soundboard-compatible JSON sound list.
+- Stop all active sounds with a hotkey.
 
 ## Default hotkeys
 
 | Action | Default |
 | --- | --- |
-| Play a random sound | `Ctrl+F1` |
+| Random sound | `Ctrl+F1` |
 | Stop all sounds | `Ctrl+Shift+S` |
-| Play the first seven filtered local sounds | `Ctrl+F2` through `Ctrl+F8` |
+| First seven filtered local sounds | `Ctrl+F2` through `Ctrl+F8` |
 
-Sound bindings and the random/stop hotkeys can be changed from **Settings**.
+Hotkeys and bindings can be changed from **Settings** without restarting the app.
 
 ## Installation
 
-Windows is the currently verified platform. Download the latest installer from the [public releases page](https://github.com/Alexflu/soundboard/releases/latest) and run `soundboard Setup x.x.x.exe`.
+The modernized version has not yet been published as a GitHub release. The Windows package has been locally validated.
 
-Linux AppImage and macOS DMG packaging are configured, but the modernized application has not yet been fully validated on those platforms.
+Linux AppImage and macOS DMG packaging are configured but remain unverified.
 
-## Getting started
+## Audio routing
 
-1. Open **Settings** and choose an audio output.
-2. Keep the generated default sound list or choose an existing compatible JSON file.
-3. Add local files or search MyInstants.
-4. Click a sound to play it, or assign it to a hotkey.
+Routing soundboard audio into Discord or streaming software currently requires a virtual audio device or mixer, such as Voicemeeter Banana with VB-CABLE on Windows. Configure it to mix your microphone and soundboard audio together.
 
-Preferences and the default sound list are stored in Electron's user-data directory. Typical locations are:
-
-- Windows: `%APPDATA%\soundboard`
-- macOS: `~/Library/Application Support/soundboard`
-- Linux: `~/.config/soundboard`
-
-## Routing audio into Discord or streaming software
-
-The app currently plays through the selected audio output device. Sending soundboard audio into a communication application's microphone input still requires an external virtual audio device or mixer, such as Voicemeeter Banana with VB-CABLE on Windows.
-
-Configure that mixer to combine your microphone and the soundboard output so you can speak and play sounds simultaneously. Built-in microphone mixing and virtual-device routing are planned but are not implemented yet.
+Built-in routing and microphone mixing are planned but not yet implemented.
 
 ## Development
 
-### Requirements
+Requirements:
 
 - Node.js `24.18.x`
 - Yarn `4.17.x`
-- Git or GitHub Desktop
 
-Clone the repository, open PowerShell in the repository folder, and install dependencies:
+Install dependencies and start the development app:
 
 ```powershell
 yarn install
-```
-
-### Start the development app
-
-```powershell
 yarn start
 ```
 
-The development server supports hot reload. Open Developer Tools with `Alt+Ctrl+I`.
+Open Developer Tools with `Alt+Ctrl+I`.
 
-### Validate changes
+Validate the project:
 
 ```powershell
 yarn check
 ```
 
-This runs ESLint, TypeScript type checking, and the Jest test suite.
-
-### Create a production package
+Create a production package in the `release` directory:
 
 ```powershell
 yarn package
 ```
 
-Packages are written to the `release` directory. Packaging targets the current operating system.
-
 ## Technology
 
-- Electron 41
-- React 19
-- React Router 7
-- TypeScript 6
-- Webpack 5
-- Jest and Testing Library
+Electron 41 · React 19 · React Router 7 · TypeScript 6 · Webpack 5
 
 ## License
 
