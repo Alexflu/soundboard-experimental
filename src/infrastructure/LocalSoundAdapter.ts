@@ -44,7 +44,7 @@ class LocalSoundAdapter {
         new LocalSoundJson([], soundPath, name, 1)
       );
       LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
-    } catch (error) {
+    } catch {
       toast.info(`Cannot add file ${soundPath}`);
     }
   }
@@ -57,7 +57,7 @@ class LocalSoundAdapter {
           (sound) => LocalSoundAdapter.toFileUrl(sound.file) !== soundPath
         );
       LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
-    } catch (error) {
+    } catch {
       toast.info(`Cannot remove file ${soundPath}`);
     }
   }
@@ -72,7 +72,7 @@ class LocalSoundAdapter {
         }
       });
       LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
-    } catch (error) {
+    } catch {
       toast.info('Cannot save sound volume');
     }
   }
@@ -113,7 +113,7 @@ class LocalSoundAdapter {
         movedEntry
       );
       LocalSoundAdapter.writeSoundsFile(pathToSoundsJson, localSoundsFileJson);
-    } catch (error) {
+    } catch {
       toast.info('Cannot reorder sounds');
     }
   }
@@ -131,7 +131,7 @@ class LocalSoundAdapter {
     try {
       const rawData = fs.readFileSync(pathToSoundsJson, 'utf8');
       return this.parseJson(rawData);
-    } catch (error) {
+    } catch {
       toast.info(
         `Cannot read file ${pathToSoundsJson}, please set sounds.json in settings`
       );
