@@ -6,9 +6,9 @@ const FULL_DURATION_TOLERANCE_SECONDS = 0.01;
 type TrimHandle = 'start' | 'end';
 
 type PlaybackTrimHandlesProps = {
-  duration?: number | null;
-  startTime?: number;
-  endTime?: number;
+  duration: number | null | undefined;
+  startTime: number | undefined;
+  endTime: number | undefined;
   onCommit: (startTime: number, endTime?: number) => void;
 };
 
@@ -17,12 +17,13 @@ const clamp = (value: number, minimum: number, maximum: number) =>
 
 const PlaybackTrimHandles = ({
   duration,
-  startTime = 0,
+  startTime,
   endTime,
   onCommit,
 }: PlaybackTrimHandlesProps) => {
+  const normalizedStartTime = startTime ?? 0;
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const [draftStart, setDraftStart] = useState(startTime);
+  const [draftStart, setDraftStart] = useState(normalizedStartTime);
   const [draftEnd, setDraftEnd] = useState(endTime ?? duration ?? 0);
   const activeHandle = useRef<TrimHandle | null>(null);
   const draftStartRef = useRef(draftStart);
@@ -34,7 +35,11 @@ const PlaybackTrimHandles = ({
     }
 
     const minimumRange = Math.min(MIN_TRIM_RANGE_SECONDS, duration);
-    const nextStart = clamp(startTime, 0, Math.max(0, duration - minimumRange));
+    const nextStart = clamp(
+      normalizedStartTime,
+      0,
+      Math.max(0, duration - minimumRange)
+    );
     const nextEnd = clamp(
       endTime ?? duration,
       nextStart + minimumRange,
@@ -44,7 +49,7 @@ const PlaybackTrimHandles = ({
     setDraftEnd(nextEnd);
     draftStartRef.current = nextStart;
     draftEndRef.current = nextEnd;
-  }, [duration, endTime, startTime]);
+  }, [duration, endTime, normalizedStartTime]);
 
   if (!duration || !Number.isFinite(duration) || duration <= 0) {
     return null;
@@ -151,9 +156,6 @@ const PlaybackTrimHandles = ({
         onKeyDown={(event) => moveWithKeyboard('start', event)}
         draggable={false}
         aria-label="Playback start"
-        aria-valuemin={0}
-        aria-valuemax={duration}
-        aria-valuenow={draftStart}
         title="Drag to set playback start"
       />
       <button
@@ -167,9 +169,6 @@ const PlaybackTrimHandles = ({
         onKeyDown={(event) => moveWithKeyboard('end', event)}
         draggable={false}
         aria-label="Playback end"
-        aria-valuemin={0}
-        aria-valuemax={duration}
-        aria-valuenow={draftEnd}
         title="Drag to set playback end"
       />
     </div>
