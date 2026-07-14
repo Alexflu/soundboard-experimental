@@ -1,58 +1,77 @@
 # Soundboard
 
-A simple soundboard desktop app (like EXP Soundboard). <br>
-It allows two sources: you can add your local sounds or play sounds from [MyInstants](https://www.myinstants.com/)  
+A desktop soundboard for playing local audio or sounds from [MyInstants](https://www.myinstants.com/), with selectable audio output and system-wide hotkeys.
 
-![soundboard-demo](https://user-images.githubusercontent.com/7093472/130357908-b1ecddfb-73a7-45d4-90d1-9c97760f644b.gif)
+## What's new in this overhaul
 
-### Features
-* Play sounds
-* Play a random sound via "Ctrl + F1"
-* Add or remove sounds
-* Search sounds (minimum 3 characters to get from MyInstants)
-* Modify audio output
-* Modify the path of the json conf file (you can use your EXP Soundboard json conf file if you have one, it's compatible)
+- Assign individual sounds to customizable global hotkeys.
+- Enable single-key piano-style bindings.
+- Optionally assign multiple sounds to one hotkey.
+- Choose whether random playback uses local or hotkey-bound sounds.
+- Reorder sounds and adjust individual volume levels.
+- Modernized Electron, React, TypeScript, build, testing, and packaging systems.
 
-#### Missing features
-* Use hotkeys to play sounds
-* Mac compatibility
+## Features
 
-## How to install
-* Download the binary from the [latest release](https://github.com/Glecun/soundboard/releases/latest) 
-  * For windows: `soundboard-Setup-0.0.x.exe` 
-  * For Linux: `soundboard-0.0.x.AppImage`
+- Add, remove, search, and play sounds.
+- Choose the soundboard's audio output device.
+- Use an EXP Soundboard-compatible JSON sound list.
+- Stop all active sounds with a hotkey.
 
-### To redirect the audio to a communication app (like Discord)
-You need to install & setup [Voicemeeter Banana](https://vb-audio.com/Voicemeeter/banana.htm) and [Virtual Audio Cable](https://vb-audio.com/Cable/index.htm) <br>
-I personally followed two excellent videos from a youtuber to setup everything up, it is in French but you can watch it with subtitles or follow another video.
-* Configure Voicemeeter Banana (you can skip parts for "external audio card" and "streaming") : https://www.youtube.com/watch?v=5jG3OGJ68cs 
-* Configure Virtual Audio Cable (replace EXP Soundboard by this app) : https://www.youtube.com/watch?v=8aNrYkZnhFM
+## Default hotkeys
+
+| Action | Default |
+| --- | --- |
+| Random sound | `Ctrl+F1` |
+| Stop all sounds | `Ctrl+Shift+S` |
+| First seven filtered local sounds | `Ctrl+F2` through `Ctrl+F8` |
+
+Hotkeys and bindings can be changed from **Settings** without restarting the app.
+
+## Installation
+
+The modernized version has not yet been published as a GitHub release. The Windows package has been locally validated.
+
+Linux AppImage and macOS DMG packaging are configured but remain unverified.
+
+## Audio routing
+
+Routing soundboard audio into Discord or streaming software currently requires a virtual audio device or mixer, such as Voicemeeter Banana with VB-CABLE on Windows. Configure it to mix your microphone and soundboard audio together.
+
+Built-in routing and microphone mixing are planned but not yet implemented.
 
 ## Development
 
-### Stack
-<a href="https://electron.atom.io/">Electron</a><br>
-<a href="https://facebook.github.io/react/">React</a><br>
-<a href="https://github.com/reactjs/react-router">React Router</a><br>
-<a href="https://webpack.github.io/docs/">Webpack</a><br>
-<a href="https://www.npmjs.com/package/react-refresh">React Fast Refresh</a><br>
+Requirements:
 
-### Starting Development
+- Node.js `24.18.x`
+- Yarn `4.17.x`
 
-Start the app in the `dev` environment:
+Install dependencies and start the development app:
 
-```bash
+```powershell
+yarn install
 yarn start
 ```
 
-### Packaging for Production
+Open Developer Tools with `Alt+Ctrl+I`.
 
-To package apps for the local platform:
+Validate the project:
 
-```bash
+```powershell
+yarn check
+```
+
+Create a production package in the `release` directory:
+
+```powershell
 yarn package
 ```
 
-### electron-react-boilerplate docs
+## Technology
 
-See our [docs and guides here](https://electron-react-boilerplate.js.org/docs/installation)
+Electron 41 · React 19 · React Router 7 · TypeScript 6 · Webpack 5
+
+## License
+
+[MIT](LICENSE)
