@@ -52,32 +52,31 @@ const PlaybackTrimHandles = ({
 
   const minimumRange = Math.min(MIN_TRIM_RANGE_SECONDS, duration);
 
-  const updateFromPointer = (handle: TrimHandle, clientX: number) => {
-    const bounds = trackRef.current?.getBoundingClientRect();
-    if (!bounds || bounds.width <= 0) {
-      return;
-    }
-
-    const nextTime = clamp(
-      ((clientX - bounds.left) / bounds.width) * duration,
-      0,
-      duration
-    );
+  const updateTime = (handle: TrimHandle, nextTime: number) => {
     if (handle === 'start') {
       const nextStart = Math.min(
-        nextTime,
+        clamp(nextTime, 0, duration),
         draftEndRef.current - minimumRange
       );
       draftStartRef.current = nextStart;
       setDraftStart(nextStart);
     } else {
       const nextEnd = Math.max(
-        nextTime,
+        clamp(nextTime, 0, duration),
         draftStartRef.current + minimumRange
       );
       draftEndRef.current = nextEnd;
       setDraftEnd(nextEnd);
     }
+  };
+
+  const updateFromPointer = (handle: TrimHandle, clientX: number) => {
+    const bounds = trackRef.current?.getBoundingClientRect();
+    if (!bounds || bounds.width <= 0) {
+      return;
+    }
+
+    updateTime(handle, ((clientX - bounds.left) / bounds.width) * duration);
   };
 
   const commit = () => {
@@ -115,7 +114,9 @@ const PlaybackTrimHandles = ({
     event.preventDefault();
     event.stopPropagation();
     activeHandle.current = null;
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
     commit();
   };
 
@@ -133,17 +134,12 @@ const PlaybackTrimHandles = ({
     const step = Math.max(0.1, duration / 100);
     const current =
       handle === 'start' ? draftStartRef.current : draftEndRef.current;
-    updateFromPointer(
-      handle,
-      (trackRef.current?.getBoundingClientRect().left || 0) +
-        ((current + direction * step) / duration) *
-          (trackRef.current?.getBoundingClientRect().width || 0)
-    );
+    updateTime(handle, current + direction * step);
     commit();
   };
 
   return (
-    <div className="playback-trim" ref={trackRef} aria-hidden="true">
+    <div className="playback-trim" ref={trackRef}>
       <button
         type="button"
         className="playback-trim-handle playback-trim-start"
@@ -155,6 +151,9 @@ const PlaybackTrimHandles = ({
         onKeyDown={(event) => moveWithKeyboard('start', event)}
         draggable={false}
         aria-label="Playback start"
+        aria-valuemin={0}
+        aria-valuemax={duration}
+        aria-valuenow={draftStart}
         title="Drag to set playback start"
       />
       <button
@@ -168,6 +167,9 @@ const PlaybackTrimHandles = ({
         onKeyDown={(event) => moveWithKeyboard('end', event)}
         draggable={false}
         aria-label="Playback end"
+        aria-valuemin={0}
+        aria-valuemax={duration}
+        aria-valuenow={draftEnd}
         title="Drag to set playback end"
       />
     </div>
