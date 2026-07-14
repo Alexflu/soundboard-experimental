@@ -128,7 +128,7 @@ class UserPreferenceAdapter {
         json.hotkeys,
         json.hotkeySettings
       );
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -150,7 +150,7 @@ class UserPreferenceAdapter {
       if (!Array.isArray(existing.soundboardEntries)) {
         throw new Error('Invalid sounds file');
       }
-    } catch (error) {
+    } catch {
       UserPreferenceAdapter.writeDefaultSoundsListFile(defaultFilePath);
     }
   }
