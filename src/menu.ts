@@ -18,7 +18,7 @@ export default class MenuBuilder {
 
     const template =
       process.platform === 'darwin'
-        ? this.buildDarwinTemplate()
+        ? MenuBuilder.buildDarwinTemplate()
         : this.buildDefaultTemplate();
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
@@ -37,7 +37,7 @@ export default class MenuBuilder {
     });
   }
 
-  buildDarwinTemplate(): MenuItemConstructorOptions[] {
+  private static buildDarwinTemplate(): MenuItemConstructorOptions[] {
     return [
       { role: 'appMenu' },
       { role: 'editMenu' },
