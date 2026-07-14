@@ -18,7 +18,7 @@ export default class MenuBuilder {
 
     const template =
       process.platform === 'darwin'
-        ? this.buildDarwinTemplate()
+        ? MenuBuilder.buildDarwinTemplate()
         : this.buildDefaultTemplate();
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
@@ -37,13 +37,13 @@ export default class MenuBuilder {
     });
   }
 
-  buildDarwinTemplate(): MenuItemConstructorOptions[] {
+  private static buildDarwinTemplate(): MenuItemConstructorOptions[] {
     return [
       { role: 'appMenu' },
       { role: 'editMenu' },
       { role: 'viewMenu' },
       { role: 'windowMenu' },
-      this.buildHelpMenu(),
+      MenuBuilder.buildHelpMenu(),
     ];
   }
 
@@ -84,11 +84,11 @@ export default class MenuBuilder {
         ],
       },
       { label: '&View', submenu: viewItems },
-      this.buildHelpMenu(),
+      MenuBuilder.buildHelpMenu(),
     ];
   }
 
-  private buildHelpMenu(): MenuItemConstructorOptions {
+  private static buildHelpMenu(): MenuItemConstructorOptions {
     return {
       label: 'Help',
       submenu: [
