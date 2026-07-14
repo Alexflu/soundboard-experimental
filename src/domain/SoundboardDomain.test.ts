@@ -9,6 +9,10 @@ import UserPreferenceAdapter from '../infrastructure/UserPreferenceAdapter';
 describe('SoundboardDomainTest', () => {
   const getLocalSounds = jest.fn<Sound[], [string]>();
   const getMyInstantSounds = jest.fn<Promise<Sound[]>, [string]>();
+  const getUserPreferences = jest.fn(() => ({
+    pathToSoundsJson: '',
+    soundTrims: {},
+  }));
 
   const localSoundAdapter = {
     getSounds: getLocalSounds,
@@ -21,7 +25,7 @@ describe('SoundboardDomainTest', () => {
   } as unknown as MyInstantSoundAdapter;
 
   const userPreferenceAdapter = {
-    getUserPreferences: jest.fn(() => ({ pathToSoundsJson: '' })),
+    getUserPreferences,
   } as unknown as UserPreferenceAdapter;
 
   const soundboardDomain = new SoundboardDomain(
@@ -82,5 +86,35 @@ describe('SoundboardDomainTest', () => {
     const sounds = await soundboardDomain.getSounds(new Filters('sound'));
 
     expect(sounds).toEqual([soundLocal, soundMyInstant]);
+  });
+
+  it('applies saved trim ranges only to local sound rows', async () => {
+    const soundLocal = new Sound(
+      'localSound',
+      'description',
+      'file://trimmed',
+      Source.LOCAL
+    );
+    const soundMyInstant = new Sound(
+      'myInstantSound',
+      'description',
+      'https://trimmed',
+      Source.MYINSTANT
+    );
+    getUserPreferences.mockReturnValueOnce({
+      pathToSoundsJson: '',
+      soundTrims: {
+        'file://trimmed': { startTime: 2, endTime: 5 },
+        'https://trimmed': { startTime: 1, endTime: 3 },
+      },
+    });
+    getLocalSounds.mockReturnValueOnce([soundLocal]);
+    getMyInstantSounds.mockResolvedValueOnce([soundMyInstant]);
+
+    const sounds = await soundboardDomain.getSounds(new Filters(''));
+
+    expect(sounds[0]).toMatchObject({ startTime: 2, endTime: 5 });
+    expect(sounds[1]).toBe(soundMyInstant);
+    expect(sounds[1]).toMatchObject({ startTime: 0, endTime: undefined });
   });
 });
