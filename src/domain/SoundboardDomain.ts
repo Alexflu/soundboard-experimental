@@ -44,9 +44,9 @@ export class SoundboardDomain {
 
   async getSounds(filters: Filters): Promise<Sound[]> {
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();
-    const localSounds = this.localSoundAdapter.getSounds(
-      userPreferences.pathToSoundsJson
-    );
+    const localSounds = this.localSoundAdapter
+      .getSounds(userPreferences.pathToSoundsJson)
+      .map((sound) => this.applyStoredTrim(sound, userPreferences));
     const myInstantSounds = await this.myInstantSoundAdapter.getSounds(
       filters.search
     );
@@ -210,6 +210,12 @@ export class SoundboardDomain {
     );
   }
 
+  setSoundTrim(soundId: string, startTime: number, endTime?: number) {
+    this.setUserPreferences(
+      this.getUserPreferences().setSoundTrim(soundId, startTime, endTime)
+    );
+  }
+
   reorderBindings(sourceSoundId: string, targetSoundId: string) {
     this.setUserPreferences(
       this.getUserPreferences().reorderBindings(sourceSoundId, targetSoundId)
@@ -244,13 +250,16 @@ export class SoundboardDomain {
   }
 
   private playBinding(binding: HotkeyBinding): Player {
+    const trim = this.getUserPreferences().soundTrims?.[binding.sound.id];
     const player = this.playSound(
       new Sound(
         binding.sound.name,
         '',
         binding.sound.url,
         binding.sound.source,
-        binding.sound.volume
+        binding.sound.volume,
+        trim?.startTime,
+        trim?.endTime
       )
     );
     this.boundPlaybackListeners.forEach((listener) =>
@@ -276,7 +285,8 @@ export class SoundboardDomain {
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();
     const localSounds = this.localSoundAdapter
       .getSounds(userPreferences.pathToSoundsJson)
-      .filter((sound) => Boolean(sound.name && sound.path));
+      .filter((sound) => Boolean(sound.name && sound.path))
+      .map((sound) => this.applyStoredTrim(sound, userPreferences));
 
     return localSounds.length > 0
       ? localSounds[Math.floor(Math.random() * localSounds.length)]
@@ -290,6 +300,26 @@ export class SoundboardDomain {
     return bindings.length > 0
       ? bindings[Math.floor(Math.random() * bindings.length)]
       : null;
+  }
+
+  private applyStoredTrim(
+    sound: Sound,
+    preferences: UserPreferences
+  ): Sound {
+    const trim = preferences.soundTrims?.[sound.path];
+    if (!trim) {
+      return sound;
+    }
+
+    return new Sound(
+      sound.name,
+      sound.description,
+      sound.path,
+      sound.source,
+      sound.volume,
+      trim.startTime,
+      trim.endTime
+    );
   }
 }
 
