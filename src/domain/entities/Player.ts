@@ -73,14 +73,16 @@ class Player {
 
     await this.waitForMetadata(audioPlayer);
     if (this.player !== audioPlayer) {
+      Player.activePlayers.delete(this);
       return;
     }
 
-    const duration = Number.isFinite(audioPlayer.duration)
-      ? audioPlayer.duration
-      : undefined;
+    const duration =
+      Number.isFinite(audioPlayer.duration) && audioPlayer.duration > 0
+        ? audioPlayer.duration
+        : undefined;
     const startTime = duration
-      ? Math.min(this.sound.startTime, duration)
+      ? Math.min(this.sound.startTime, Math.max(0, duration - 0.01))
       : this.sound.startTime;
     const requestedEndTime = this.sound.endTime;
     const endTime =
@@ -90,7 +92,11 @@ class Player {
     const validEndTime =
       endTime !== undefined && endTime > startTime ? endTime : undefined;
 
-    audioPlayer.currentTime = startTime;
+    try {
+      audioPlayer.currentTime = startTime;
+    } catch {
+      // Some failed or not-yet-seekable media cannot accept currentTime.
+    }
 
     const onTrimEnd = () => {
       if (
@@ -124,6 +130,7 @@ class Player {
 
     audioPlayer.play().catch((e) => {
       this.cleanupPlayback?.();
+      this.cleanupPlayback = undefined;
       toast.error(`Error when playing sound : ${e}`);
     });
   }
@@ -163,10 +170,15 @@ class Player {
   stop() {
     if (this.player) {
       this.player.pause();
-      this.player.currentTime = 0;
+      try {
+        this.player.currentTime = 0;
+      } catch {
+        // Media may be stopped before it becomes seekable.
+      }
     }
     this.cleanupPlayback?.();
     this.cleanupPlayback = undefined;
+    Player.activePlayers.delete(this);
     delete this.player;
   }
 }
