@@ -43,7 +43,7 @@ export default class MenuBuilder {
       { role: 'editMenu' },
       { role: 'viewMenu' },
       { role: 'windowMenu' },
-      this.buildHelpMenu(),
+      MenuBuilder.buildHelpMenu(),
     ];
   }
 
@@ -84,11 +84,11 @@ export default class MenuBuilder {
         ],
       },
       { label: '&View', submenu: viewItems },
-      this.buildHelpMenu(),
+      MenuBuilder.buildHelpMenu(),
     ];
   }
 
-  private buildHelpMenu(): MenuItemConstructorOptions {
+  private static buildHelpMenu(): MenuItemConstructorOptions {
     return {
       label: 'Help',
       submenu: [
