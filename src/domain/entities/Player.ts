@@ -71,7 +71,7 @@ class Player {
       }
     }
 
-    await this.waitForMetadata(audioPlayer);
+    await Player.waitForMetadata(audioPlayer);
     if (this.player !== audioPlayer) {
       Player.activePlayers.delete(this);
       return;
@@ -151,7 +151,9 @@ class Player {
     }
   }
 
-  private waitForMetadata(audioPlayer: HTMLAudioElement): Promise<void> {
+  private static waitForMetadata(
+    audioPlayer: HTMLAudioElement
+  ): Promise<void> {
     if (audioPlayer.readyState >= 1) {
       return Promise.resolve();
     }
