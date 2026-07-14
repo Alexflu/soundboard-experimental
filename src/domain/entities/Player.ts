@@ -151,9 +151,7 @@ class Player {
     }
   }
 
-  private static waitForMetadata(
-    audioPlayer: HTMLAudioElement
-  ): Promise<void> {
+  private static waitForMetadata(audioPlayer: HTMLAudioElement): Promise<void> {
     if (audioPlayer.readyState >= 1) {
       return Promise.resolve();
     }
