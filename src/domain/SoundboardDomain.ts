@@ -46,7 +46,9 @@ export class SoundboardDomain {
     const userPreferences = this.userPreferenceAdapter.getUserPreferences();
     const localSounds = this.localSoundAdapter
       .getSounds(userPreferences.pathToSoundsJson)
-      .map((sound) => this.applyStoredTrim(sound, userPreferences));
+      .map((sound) =>
+        SoundboardDomain.applyStoredTrim(sound, userPreferences)
+      );
     const myInstantSounds = await this.myInstantSoundAdapter.getSounds(
       filters.search
     );
@@ -286,7 +288,9 @@ export class SoundboardDomain {
     const localSounds = this.localSoundAdapter
       .getSounds(userPreferences.pathToSoundsJson)
       .filter((sound) => Boolean(sound.name && sound.path))
-      .map((sound) => this.applyStoredTrim(sound, userPreferences));
+      .map((sound) =>
+        SoundboardDomain.applyStoredTrim(sound, userPreferences)
+      );
 
     return localSounds.length > 0
       ? localSounds[Math.floor(Math.random() * localSounds.length)]
@@ -302,7 +306,7 @@ export class SoundboardDomain {
       : null;
   }
 
-  private applyStoredTrim(
+  private static applyStoredTrim(
     sound: Sound,
     preferences: UserPreferences
   ): Sound {
