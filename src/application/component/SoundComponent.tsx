@@ -31,7 +31,7 @@ const SoundComponent = ({
   reloadSounds,
 }: {
   sound: Sound;
-  trim?: SoundTrim;
+  trim: SoundTrim | undefined;
   bindings: HotkeyBinding[];
   registerSound: (stopSound: () => void) => void;
   reloadSounds: () => void;
@@ -242,7 +242,7 @@ const SoundComponent = ({
       metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
       metadataPlayer.src = '';
     };
-  }, [sound.path]);
+  }, [sound.path, trimEnd, trimStart]);
 
   useEffect(
     () => () => {
