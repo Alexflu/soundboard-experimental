@@ -107,9 +107,7 @@ export default function App() {
           .forEach((binding) => addRecentlyRemovedSound(binding.sound));
         userPreferences.bindings
           .filter((binding) => !previousBindingIds.has(binding.sound.id))
-          .forEach((binding) =>
-            removeRecentlyRemovedSound(binding.sound.id)
-          );
+          .forEach((binding) => removeRecentlyRemovedSound(binding.sound.id));
         previousBindingsRef.current = userPreferences.bindings;
 
         setHotkeys(userPreferences.hotkeys);

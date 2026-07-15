@@ -80,18 +80,14 @@ const RecentlyRemovedHistory = ({
       );
   }, [reloadLocalSoundIds]);
 
-  useEffect(
-    () => subscribeRecentlyRemovedSounds(setRecentlyRemoved),
-    []
-  );
+  useEffect(() => subscribeRecentlyRemovedSounds(setRecentlyRemoved), []);
 
   const visibleSounds = useMemo(() => {
     const activeBindingIds = new Set(
       bindings.map((binding) => binding.sound.id)
     );
     return recentlyRemoved.filter(
-      (sound) =>
-        !activeBindingIds.has(sound.id) && !localSoundIds.has(sound.id)
+      (sound) => !activeBindingIds.has(sound.id) && !localSoundIds.has(sound.id)
     );
   }, [bindings, localSoundIds, recentlyRemoved]);
 
