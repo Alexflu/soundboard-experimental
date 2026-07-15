@@ -13,6 +13,7 @@ const RemoveSound = ({
   const removeSound = () => {
     soundboardDomain.removeSound(sound);
     reloadSounds();
+    window.dispatchEvent(new Event('soundboard:localSoundsChanged'));
   };
   return <FaTrash className="trash-icon" onClick={removeSound} />;
 };
