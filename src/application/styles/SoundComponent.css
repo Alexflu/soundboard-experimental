@@ -8,7 +8,7 @@
   overflow: hidden;
 }
 
-.sound-component > *:not(.sound-progress) {
+.sound-component > *:not(.sound-progress):not(.playback-trim) {
   position: relative;
   z-index: 1;
 }
@@ -20,6 +20,40 @@
   transform-origin: left;
   background: rgba(0, 128, 0, 0.18);
   pointer-events: none;
+}
+
+.playback-trim {
+  position: absolute;
+  inset: 2px 4px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.playback-trim-handle {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+  transform: translateX(-50%);
+}
+
+.playback-trim-handle::before {
+  content: '';
+  position: absolute;
+  inset: 0 -5px;
+}
+
+.playback-trim-handle:hover,
+.playback-trim-handle:focus {
+  width: 6px;
 }
 
 .sound-component .action-container {

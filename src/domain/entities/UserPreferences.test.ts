@@ -15,6 +15,10 @@ describe('UserPreferences', () => {
     expect(createPreferences().bindings).toEqual([]);
   });
 
+  it('keeps empty sound trims by default', () => {
+    expect(createPreferences().soundTrims).toEqual({});
+  });
+
   it('uses safe hotkey behavior defaults', () => {
     expect(createPreferences().hotkeySettings).toEqual({
       pianoKeysEnabled: false,
@@ -194,5 +198,21 @@ describe('UserPreferences', () => {
       'id-1',
       'id-2',
     ]);
+  });
+
+  it('stores normalized playback trim ranges', () => {
+    const preferences = createPreferences().setSoundTrim('sound-id', -2, 6);
+
+    expect(preferences.soundTrims).toEqual({
+      'sound-id': { startTime: 0, endTime: 6 },
+    });
+  });
+
+  it('removes a playback trim returned to the full range', () => {
+    const preferences = createPreferences()
+      .setSoundTrim('sound-id', 2, 6)
+      .setSoundTrim('sound-id', 0);
+
+    expect(preferences.soundTrims).toEqual({});
   });
 });

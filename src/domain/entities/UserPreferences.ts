@@ -16,6 +16,43 @@ export type HotkeyBinding = {
   sound: HotkeySound;
 };
 
+export type SoundTrim = {
+  startTime: number;
+  endTime?: number;
+};
+
+export type SoundTrimMap = Record<string, SoundTrim>;
+
+const normalizeSoundTrim = (trim?: Partial<SoundTrim> | null): SoundTrim => {
+  const startTime =
+    typeof trim?.startTime === 'number' && Number.isFinite(trim.startTime)
+      ? Math.max(0, trim.startTime)
+      : 0;
+  const endTime =
+    typeof trim?.endTime === 'number' &&
+    Number.isFinite(trim.endTime) &&
+    trim.endTime > startTime
+      ? trim.endTime
+      : undefined;
+
+  return endTime === undefined ? { startTime } : { startTime, endTime };
+};
+
+export const normalizeSoundTrims = (
+  soundTrims?: Record<string, Partial<SoundTrim>> | null
+): SoundTrimMap =>
+  Object.entries(soundTrims || {}).reduce((normalized, [soundId, trim]) => {
+    if (!soundId) {
+      return normalized;
+    }
+
+    const nextTrim = normalizeSoundTrim(trim);
+    if (nextTrim.startTime > 0 || nextTrim.endTime !== undefined) {
+      normalized[soundId] = nextTrim;
+    }
+    return normalized;
+  }, {} as SoundTrimMap);
+
 export type RandomSoundPool = 'local' | 'bound';
 
 export type HotkeySettings = {
@@ -128,6 +165,8 @@ export class UserPreferences {
 
   hotkeySettings: HotkeySettings;
 
+  soundTrims: SoundTrimMap;
+
   constructor(
     audioOutput: AudioOutput,
     pathToSoundsJson: string,
@@ -135,7 +174,8 @@ export class UserPreferences {
     bindings: HotkeyBinding[] = [],
     legacyHotkeySounds?: HotkeySoundMap,
     legacyHotkeys?: LegacyHotkeyMap,
-    hotkeySettings: Partial<HotkeySettings> = {}
+    hotkeySettings: Partial<HotkeySettings> = {},
+    soundTrims: Record<string, Partial<SoundTrim>> = {}
   ) {
     this.audioOutput = audioOutput;
     this.pathToSoundsJson = pathToSoundsJson;
@@ -146,6 +186,7 @@ export class UserPreferences {
       legacyHotkeySounds,
       legacyHotkeys
     );
+    this.soundTrims = normalizeSoundTrims(soundTrims);
   }
 
   private copy(
@@ -155,6 +196,7 @@ export class UserPreferences {
       hotkeys: Partial<HotkeyMap>;
       bindings: HotkeyBinding[];
       hotkeySettings: Partial<HotkeySettings>;
+      soundTrims: SoundTrimMap;
     }> = {}
   ): UserPreferences {
     return new UserPreferences(
@@ -164,7 +206,8 @@ export class UserPreferences {
       overrides.bindings || this.bindings,
       undefined,
       undefined,
-      overrides.hotkeySettings || this.hotkeySettings
+      overrides.hotkeySettings || this.hotkeySettings,
+      overrides.soundTrims || this.soundTrims
     );
   }
 
@@ -191,6 +234,25 @@ export class UserPreferences {
         ...hotkeySettings,
       },
     });
+  }
+
+  setSoundTrim(
+    soundId: string,
+    startTime: number,
+    endTime?: number
+  ): UserPreferences {
+    if (!soundId) {
+      return this;
+    }
+
+    const soundTrims = { ...this.soundTrims };
+    const trim = normalizeSoundTrim({ startTime, endTime });
+    if (trim.startTime === 0 && trim.endTime === undefined) {
+      delete soundTrims[soundId];
+    } else {
+      soundTrims[soundId] = trim;
+    }
+    return this.copy({ soundTrims });
   }
 
   upsertBinding(key: string, sound: HotkeySound): UserPreferences {

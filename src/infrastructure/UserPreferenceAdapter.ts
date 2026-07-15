@@ -126,7 +126,8 @@ class UserPreferenceAdapter {
         json.bindings,
         json.hotkeySounds,
         json.hotkeys,
-        json.hotkeySettings
+        json.hotkeySettings,
+        json.soundTrims
       );
     } catch {
       return null;

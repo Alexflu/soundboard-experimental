@@ -5,10 +5,14 @@ import Sound from '../../domain/entities/Sound';
 import Player from '../../domain/entities/Player';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import Source from '../../domain/entities/Source';
-import { HotkeyBinding } from '../../domain/entities/UserPreferences';
+import {
+  HotkeyBinding,
+  SoundTrim,
+} from '../../domain/entities/UserPreferences';
 import RemoveSound from './RemoveSound';
 import { captureHotkey } from './hotkeyCapture';
 import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
+import PlaybackTrimHandles from './PlaybackTrimHandles';
 
 const formatDuration = (duration: number | null) => {
   if (duration === null || !Number.isFinite(duration)) {
@@ -21,19 +25,25 @@ const formatDuration = (duration: number | null) => {
 
 const SoundComponent = ({
   sound,
+  trim,
   bindings,
   registerSound,
   reloadSounds,
 }: {
   sound: Sound;
+  trim: SoundTrim | undefined;
   bindings: HotkeyBinding[];
   registerSound: (stopSound: () => void) => void;
   reloadSounds: () => void;
 }) => {
+  const initialStartTime = trim?.startTime ?? sound.startTime;
+  const initialEndTime = trim?.endTime ?? sound.endTime;
   const [player] = useState(() => {
     const { audioOutput } = soundboardDomain.getUserPreferences();
     const masterVolume = audioOutput.volume ?? 1;
     Player.setGlobalMasterVolume(masterVolume);
+    sound.startTime = initialStartTime;
+    sound.endTime = initialEndTime;
     return new Player(sound, audioOutput.id, masterVolume);
   });
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,16 +52,27 @@ const SoundComponent = ({
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(sound.volume);
+  const [trimStart, setTrimStart] = useState(initialStartTime);
+  const [trimEnd, setTrimEnd] = useState<number | undefined>(initialEndTime);
   const captureCleanup = useRef<(() => void) | null>(null);
   const soundBindings = bindings.filter(
     (binding) => binding.sound.id === sound.path
   );
   const canReorder = sound.source === Source.LOCAL;
+  const canTrim = sound.source === Source.LOCAL;
+  const playbackStart =
+    duration === null ? trimStart : Math.min(trimStart, duration);
+  const playbackEnd =
+    duration === null
+      ? null
+      : Math.max(playbackStart, Math.min(trimEnd ?? duration, duration));
+  const playbackDuration =
+    playbackEnd === null ? null : Math.max(0, playbackEnd - playbackStart);
 
   const resetPlaybackDisplay = () => {
     setIsPlaying(false);
     setProgress(0);
-    setRemainingTime(duration);
+    setRemainingTime(playbackDuration);
   };
 
   const stop = () => {
@@ -60,6 +81,8 @@ const SoundComponent = ({
   };
 
   const play = () => {
+    player.sound.startTime = trimStart;
+    player.sound.endTime = trimEnd;
     player.play();
     const audioPlayer = player.player;
     if (!audioPlayer) {
@@ -68,16 +91,33 @@ const SoundComponent = ({
 
     registerSound(stop);
     setIsPlaying(true);
-    setRemainingTime(duration);
+    setRemainingTime(playbackDuration);
 
     const onTimeUpdate = () => {
       const totalDuration = Number.isFinite(audioPlayer.duration)
         ? audioPlayer.duration
         : duration;
-      if (totalDuration && totalDuration > 0) {
-        setProgress(audioPlayer.currentTime / totalDuration);
-        setRemainingTime(totalDuration - audioPlayer.currentTime);
+      if (!totalDuration || totalDuration <= 0) {
+        return;
       }
+
+      const startTime = Math.min(trimStart, totalDuration);
+      const endTime = Math.max(
+        startTime,
+        Math.min(trimEnd ?? totalDuration, totalDuration)
+      );
+      const rangeDuration = endTime - startTime;
+      if (rangeDuration <= 0) {
+        return;
+      }
+
+      setProgress(
+        Math.min(
+          1,
+          Math.max(0, (audioPlayer.currentTime - startTime) / rangeDuration)
+        )
+      );
+      setRemainingTime(Math.max(0, endTime - audioPlayer.currentTime));
     };
 
     audioPlayer.addEventListener('timeupdate', onTimeUpdate);
@@ -95,6 +135,25 @@ const SoundComponent = ({
         nextVolume
       );
     }
+  };
+
+  const updateTrim = (startTime: number, endTime?: number) => {
+    if (isPlaying) {
+      stop();
+    }
+    setTrimStart(startTime);
+    setTrimEnd(endTime);
+    sound.startTime = startTime;
+    sound.endTime = endTime;
+    player.sound.startTime = startTime;
+    player.sound.endTime = endTime;
+    soundboardDomain.setSoundTrim(sound.path, startTime, endTime);
+
+    if (duration !== null) {
+      const nextEnd = Math.min(endTime ?? duration, duration);
+      setRemainingTime(Math.max(0, nextEnd - Math.min(startTime, duration)));
+    }
+    setProgress(0);
   };
 
   const reorderSound = (sourceSoundPath: string) => {
@@ -143,18 +202,47 @@ const SoundComponent = ({
   };
 
   useEffect(() => {
+    const nextStart = trim?.startTime ?? 0;
+    const nextEnd = trim?.endTime;
+    setTrimStart(nextStart);
+    setTrimEnd(nextEnd);
+    sound.startTime = nextStart;
+    sound.endTime = nextEnd;
+    player.sound.startTime = nextStart;
+    player.sound.endTime = nextEnd;
+
+    if (duration !== null) {
+      setRemainingTime(
+        Math.max(
+          0,
+          Math.min(nextEnd ?? duration, duration) -
+            Math.min(nextStart, duration)
+        )
+      );
+    }
+  }, [duration, player, sound, trim]);
+
+  useEffect(() => {
     const metadataPlayer = new Audio(sound.path);
     metadataPlayer.preload = 'metadata';
     const onMetadata = () => {
-      setDuration(metadataPlayer.duration);
-      setRemainingTime(metadataPlayer.duration);
+      const totalDuration = metadataPlayer.duration;
+      setDuration(totalDuration);
+      setRemainingTime(
+        Math.max(
+          0,
+          Math.min(trimEnd ?? totalDuration, totalDuration) -
+            Math.min(trimStart, totalDuration)
+        )
+      );
     };
     metadataPlayer.addEventListener('loadedmetadata', onMetadata);
+    metadataPlayer.load();
     return () => {
       metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
       metadataPlayer.src = '';
     };
-  }, [sound.path]);
+  }, [sound.path, trimEnd, trimStart]);
 
   useEffect(
     () => () => {
@@ -194,6 +282,14 @@ const SoundComponent = ({
         className="sound-progress"
         style={{ transform: `scaleX(${progress})` }}
       />
+      {canTrim && (
+        <PlaybackTrimHandles
+          duration={duration}
+          startTime={trimStart}
+          endTime={trimEnd}
+          onCommit={updateTrim}
+        />
+      )}
       <button
         type="button"
         className="action-container"
@@ -224,9 +320,9 @@ const SoundComponent = ({
       <div className="row-end">
         <span
           className="sound-duration"
-          title={`Total duration ${formatDuration(duration)}`}
+          title={`Selected duration ${formatDuration(playbackDuration)}`}
         >
-          {formatDuration(isPlaying ? remainingTime : duration)}
+          {formatDuration(isPlaying ? remainingTime : playbackDuration)}
         </span>
         <button
           className="bind-hotkey-button"

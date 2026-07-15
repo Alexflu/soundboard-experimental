@@ -12,10 +12,13 @@ import Player from '../../domain/entities/Player';
 import SoundComponent from '../component/SoundComponent';
 import FilterComponent from '../component/FilterComponent';
 import AddSound from '../component/AddSound';
+import PlaybackTrimHandles from '../component/PlaybackTrimHandles';
 import Filters from '../../domain/entities/Filters';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import {
   HotkeyBinding,
+  SoundTrim,
+  SoundTrimMap,
   UserPreferences,
 } from '../../domain/entities/UserPreferences';
 import Source from '../../domain/entities/Source';
@@ -25,7 +28,26 @@ import {
 } from '../../domain/entities/HotkeyPreferences';
 import { captureHotkey } from '../component/hotkeyCapture';
 
+const MIN_TRIM_RANGE_SECONDS = 0.05;
+
 const getBindingId = (binding: HotkeyBinding) => binding.sound.id;
+
+const getPlaybackRange = (duration: number, trim?: SoundTrim) => {
+  const minimumRange = Math.min(MIN_TRIM_RANGE_SECONDS, duration);
+  const startTime = Math.min(
+    Math.max(0, trim?.startTime ?? 0),
+    Math.max(0, duration - minimumRange)
+  );
+  const endTime = Math.max(
+    startTime + minimumRange,
+    Math.min(trim?.endTime ?? duration, duration)
+  );
+  return {
+    startTime,
+    endTime,
+    duration: Math.max(0, endTime - startTime),
+  };
+};
 
 type DropPosition = 'before' | 'after';
 
@@ -79,12 +101,18 @@ const SoundsView = ({
     initialPreferences.bindings
   );
   const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
+  const [soundTrims, setSoundTrims] = useState<SoundTrimMap>(
+    initialPreferences.soundTrims || {}
+  );
   const [editingBindingId, setEditingBindingId] = useState<string | null>(null);
   const [playingProgress, setPlayingProgress] = useState<
     Record<string, number>
   >({});
   const [playingBindings, setPlayingBindings] = useState<
     Record<string, boolean>
+  >({});
+  const [boundTotalDurations, setBoundTotalDurations] = useState<
+    Record<string, number>
   >({});
   const [boundDurations, setBoundDurations] = useState<Record<string, number>>(
     {}
@@ -140,6 +168,17 @@ const SoundsView = ({
       [bindingId]:
         boundDurationsRef.current[bindingId] ?? current[bindingId] ?? 0,
     }));
+  };
+
+  const updateBoundTrim = (
+    binding: HotkeyBinding,
+    startTime: number,
+    endTime?: number
+  ) => {
+    if (playingBindings[getBindingId(binding)]) {
+      stopBoundHotkeySound(binding);
+    }
+    soundboardDomain.setSoundTrim(binding.sound.id, startTime, endTime);
   };
 
   const reorderBinding = (
@@ -245,6 +284,7 @@ const SoundsView = ({
       (updatedPreferences: UserPreferences) => {
         setBindings(updatedPreferences.bindings);
         setHotkeys(updatedPreferences.hotkeys);
+        setSoundTrims(updatedPreferences.soundTrims || {});
       }
     );
     return () => unregister();
@@ -260,10 +300,6 @@ const SoundsView = ({
   useEffect(() => {
     const cleanups = bindings.reduce<Array<() => void>>((current, binding) => {
       const bindingId = getBindingId(binding);
-      if (boundDurationsRef.current[bindingId] !== undefined) {
-        return current;
-      }
-
       const metadataPlayer = new Audio(binding.sound.url);
       metadataPlayer.preload = 'metadata';
       const onMetadata = () => {
@@ -271,13 +307,23 @@ const SoundsView = ({
         if (!Number.isFinite(duration) || duration <= 0) {
           return;
         }
-        boundDurationsRef.current[bindingId] = duration;
-        setBoundDurations((values) => ({ ...values, [bindingId]: duration }));
-        setBoundRemainingTimes((values) =>
-          values[bindingId] === undefined
-            ? { ...values, [bindingId]: duration }
-            : values
-        );
+
+        const range = getPlaybackRange(duration, soundTrims[bindingId]);
+        boundDurationsRef.current[bindingId] = range.duration;
+        setBoundTotalDurations((values) => ({
+          ...values,
+          [bindingId]: duration,
+        }));
+        setBoundDurations((values) => ({
+          ...values,
+          [bindingId]: range.duration,
+        }));
+        if (!activeBoundPlayers.current[bindingId]?.size) {
+          setBoundRemainingTimes((values) => ({
+            ...values,
+            [bindingId]: range.duration,
+          }));
+        }
       };
       metadataPlayer.addEventListener('loadedmetadata', onMetadata);
       metadataPlayer.load();
@@ -289,7 +335,7 @@ const SoundsView = ({
     }, []);
 
     return () => cleanups.forEach((cleanup) => cleanup());
-  }, [bindings]);
+  }, [bindings, soundTrims]);
 
   useEffect(() => {
     const unregisterPlayback = soundboardDomain.onBoundPlayback(
@@ -316,18 +362,33 @@ const SoundsView = ({
           if (!Number.isFinite(duration) || duration <= 0) {
             return;
           }
-          boundDurationsRef.current[progressId] = duration;
-          setBoundDurations((current) => ({
+
+          const range = getPlaybackRange(duration, {
+            startTime: player.sound.startTime,
+            endTime: player.sound.endTime,
+          });
+          boundDurationsRef.current[progressId] = range.duration;
+          setBoundTotalDurations((current) => ({
             ...current,
             [progressId]: duration,
           }));
+          setBoundDurations((current) => ({
+            ...current,
+            [progressId]: range.duration,
+          }));
           setPlayingProgress((current) => ({
             ...current,
-            [progressId]: audioPlayer.currentTime / duration,
+            [progressId]: Math.min(
+              1,
+              Math.max(
+                0,
+                (audioPlayer.currentTime - range.startTime) / range.duration
+              )
+            ),
           }));
           setBoundRemainingTimes((current) => ({
             ...current,
-            [progressId]: Math.max(0, duration - audioPlayer.currentTime),
+            [progressId]: Math.max(0, range.endTime - audioPlayer.currentTime),
           }));
         };
 
@@ -402,6 +463,7 @@ const SoundsView = ({
             )}
             {bindings.map((binding) => {
               const bindingId = getBindingId(binding);
+              const trim = soundTrims[bindingId];
               return (
                 <React.Fragment key={bindingId}>
                   <SoundDropZone
@@ -454,6 +516,14 @@ const SoundsView = ({
                           })`,
                         }}
                       />
+                      <PlaybackTrimHandles
+                        duration={boundTotalDurations[bindingId]}
+                        startTime={trim?.startTime}
+                        endTime={trim?.endTime}
+                        onCommit={(startTime, endTime) =>
+                          updateBoundTrim(binding, startTime, endTime)
+                        }
+                      />
                       <span
                         className="bound-hotkey-sound-name"
                         draggable
@@ -470,7 +540,7 @@ const SoundsView = ({
                       </span>
                       <span
                         className="bound-hotkey-duration"
-                        title={`Total duration ${formatDuration(
+                        title={`Selected duration ${formatDuration(
                           boundDurations[bindingId]
                         )}`}
                       >
@@ -554,6 +624,11 @@ const SoundsView = ({
             )}
             <SoundComponent
               sound={sound}
+              trim={
+                sound.source === Source.LOCAL
+                  ? soundTrims[sound.path]
+                  : undefined
+              }
               bindings={bindings}
               registerSound={registerSound}
               reloadSounds={reloadSounds}
