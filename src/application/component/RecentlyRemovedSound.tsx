@@ -14,6 +14,7 @@ import Source from '../../domain/entities/Source';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import { SoundTrim } from '../../domain/entities/UserPreferences';
 import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
+import PlaybackTrimHandles from './PlaybackTrimHandles';
 import { captureHotkey } from './hotkeyCapture';
 import { removeRecentlyRemovedSound } from '../recentlyRemovedSounds';
 
@@ -35,6 +36,8 @@ const RecentlyRemovedSound = ({
   trim: SoundTrim | undefined;
   registerSound: (stopSound: () => void) => void;
 }) => {
+  const initialStartTime = trim?.startTime ?? 0;
+  const initialEndTime = trim?.endTime;
   const [sound] = useState(
     () =>
       new Sound(
@@ -43,8 +46,8 @@ const RecentlyRemovedSound = ({
         savedSound.url,
         savedSound.source,
         savedSound.volume,
-        trim?.startTime,
-        trim?.endTime
+        initialStartTime,
+        initialEndTime
       )
   );
   const [player] = useState(() => {
@@ -58,16 +61,16 @@ const RecentlyRemovedSound = ({
   const [duration, setDuration] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
+  const [trimStart, setTrimStart] = useState(initialStartTime);
+  const [trimEnd, setTrimEnd] = useState<number | undefined>(initialEndTime);
   const captureCleanup = useRef<(() => void) | null>(null);
 
-  const playbackStart = trim?.startTime ?? 0;
+  const playbackStart =
+    duration === null ? trimStart : Math.min(trimStart, duration);
   const playbackEnd =
     duration === null
       ? null
-      : Math.max(
-          playbackStart,
-          Math.min(trim?.endTime ?? duration, duration)
-        );
+      : Math.max(playbackStart, Math.min(trimEnd ?? duration, duration));
   const playbackDuration =
     playbackEnd === null ? null : Math.max(0, playbackEnd - playbackStart);
 
@@ -83,6 +86,8 @@ const RecentlyRemovedSound = ({
   };
 
   const play = () => {
+    player.sound.startTime = trimStart;
+    player.sound.endTime = trimEnd;
     player.play();
     const audioPlayer = player.player;
     if (!audioPlayer) {
@@ -101,10 +106,10 @@ const RecentlyRemovedSound = ({
         return;
       }
 
-      const startTime = Math.min(playbackStart, totalDuration);
+      const startTime = Math.min(trimStart, totalDuration);
       const endTime = Math.max(
         startTime,
-        Math.min(trim?.endTime ?? totalDuration, totalDuration)
+        Math.min(trimEnd ?? totalDuration, totalDuration)
       );
       const selectedDuration = endTime - startTime;
       if (selectedDuration <= 0) {
@@ -125,6 +130,25 @@ const RecentlyRemovedSound = ({
 
     audioPlayer.addEventListener('timeupdate', onTimeUpdate);
     audioPlayer.addEventListener('ended', resetPlaybackDisplay, { once: true });
+  };
+
+  const updateTrim = (startTime: number, endTime?: number) => {
+    if (isPlaying) {
+      stop();
+    }
+    setTrimStart(startTime);
+    setTrimEnd(endTime);
+    sound.startTime = startTime;
+    sound.endTime = endTime;
+    player.sound.startTime = startTime;
+    player.sound.endTime = endTime;
+    soundboardDomain.setSoundTrim(savedSound.id, startTime, endTime);
+
+    if (duration !== null) {
+      const nextEnd = Math.min(endTime ?? duration, duration);
+      setRemainingTime(Math.max(0, nextEnd - Math.min(startTime, duration)));
+    }
+    setProgress(0);
   };
 
   const finishCapture = () => {
@@ -159,6 +183,17 @@ const RecentlyRemovedSound = ({
   };
 
   useEffect(() => {
+    const nextStart = trim?.startTime ?? 0;
+    const nextEnd = trim?.endTime;
+    setTrimStart(nextStart);
+    setTrimEnd(nextEnd);
+    sound.startTime = nextStart;
+    sound.endTime = nextEnd;
+    player.sound.startTime = nextStart;
+    player.sound.endTime = nextEnd;
+  }, [player, sound, trim]);
+
+  useEffect(() => {
     const metadataPlayer = new Audio(savedSound.url);
     metadataPlayer.preload = 'metadata';
     const onMetadata = () => {
@@ -167,8 +202,8 @@ const RecentlyRemovedSound = ({
       setRemainingTime(
         Math.max(
           0,
-          Math.min(trim?.endTime ?? totalDuration, totalDuration) -
-            Math.min(playbackStart, totalDuration)
+          Math.min(trimEnd ?? totalDuration, totalDuration) -
+            Math.min(trimStart, totalDuration)
         )
       );
     };
@@ -178,7 +213,7 @@ const RecentlyRemovedSound = ({
       metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
       metadataPlayer.src = '';
     };
-  }, [playbackStart, savedSound.url, trim?.endTime]);
+  }, [savedSound.url, trimEnd, trimStart]);
 
   useEffect(
     () => () => {
@@ -201,6 +236,12 @@ const RecentlyRemovedSound = ({
         className="sound-progress"
         style={{ transform: `scaleX(${progress})` }}
       />
+      <PlaybackTrimHandles
+        duration={duration}
+        startTime={trimStart}
+        endTime={trimEnd}
+        onCommit={updateTrim}
+      />
       <button
         type="button"
         className="action-container"
@@ -211,7 +252,6 @@ const RecentlyRemovedSound = ({
       </button>
       <div className="name-description-container">
         <span>{savedSound.name}</span>
-        <span className="description">Recently removed hotkey sound</span>
       </div>
       <div className="row-end">
         <span
@@ -233,16 +273,20 @@ const RecentlyRemovedSound = ({
         >
           {isCapturingHotkey ? 'Press keys…' : 'Bind'}
         </button>
-        <div className="sound-source-control">{sourceIcon}</div>
-        <button
-          className="recently-removed-delete"
-          type="button"
-          onClick={() => removeRecentlyRemovedSound(savedSound.id)}
-          title="Remove from history"
-          aria-label={`Remove ${savedSound.name} from history`}
-        >
-          <FaTrash />
-        </button>
+        <div className="sound-source-control">
+          {sourceIcon}
+          <div className="remove-button-container">
+            <button
+              className="recently-removed-delete"
+              type="button"
+              onClick={() => removeRecentlyRemovedSound(savedSound.id)}
+              title="Remove from history"
+              aria-label={`Remove ${savedSound.name} from history`}
+            >
+              <FaTrash />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
