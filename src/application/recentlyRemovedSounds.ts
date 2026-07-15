@@ -65,9 +65,12 @@ export const getRecentlyRemovedSounds = (): HotkeySound[] => {
       return [];
     }
 
-    return saved.reduce((sounds, value) => {
+    return saved.reduce((sounds: HotkeySound[], value) => {
       const sound = normalizeStoredSound(value);
-      if (!sound || sounds.some((existing) => existing.id === sound.id)) {
+      if (
+        !sound ||
+        sounds.some((existing: HotkeySound) => existing.id === sound.id)
+      ) {
         return sounds;
       }
       return sounds.concat(sound);
