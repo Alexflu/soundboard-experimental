@@ -119,10 +119,7 @@ const RecentlyRemovedSound = ({
       setProgress(
         Math.min(
           1,
-          Math.max(
-            0,
-            (audioPlayer.currentTime - startTime) / selectedDuration
-          )
+          Math.max(0, (audioPlayer.currentTime - startTime) / selectedDuration)
         )
       );
       setRemainingTime(Math.max(0, endTime - audioPlayer.currentTime));
