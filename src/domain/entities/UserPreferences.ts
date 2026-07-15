@@ -23,9 +23,7 @@ export type SoundTrim = {
 
 export type SoundTrimMap = Record<string, SoundTrim>;
 
-const normalizeSoundTrim = (
-  trim?: Partial<SoundTrim> | null
-): SoundTrim => {
+const normalizeSoundTrim = (trim?: Partial<SoundTrim> | null): SoundTrim => {
   const startTime =
     typeof trim?.startTime === 'number' && Number.isFinite(trim.startTime)
       ? Math.max(0, trim.startTime)

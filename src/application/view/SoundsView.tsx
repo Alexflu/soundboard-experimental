@@ -388,10 +388,7 @@ const SoundsView = ({
           }));
           setBoundRemainingTimes((current) => ({
             ...current,
-            [progressId]: Math.max(
-              0,
-              range.endTime - audioPlayer.currentTime
-            ),
+            [progressId]: Math.max(0, range.endTime - audioPlayer.currentTime),
           }));
         };
 
