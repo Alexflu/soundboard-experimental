@@ -6,9 +6,9 @@ const FULL_DURATION_TOLERANCE_SECONDS = 0.01;
 type TrimHandle = 'start' | 'end';
 
 type PlaybackTrimHandlesProps = {
-  duration?: number | null;
-  startTime?: number;
-  endTime?: number;
+  duration: number | null | undefined;
+  startTime: number | undefined;
+  endTime: number | undefined;
   onCommit: (startTime: number, endTime?: number) => void;
 };
 
@@ -159,6 +159,7 @@ const PlaybackTrimHandles = ({
     <div className="playback-trim" ref={trackRef}>
       <button
         type="button"
+        role="slider"
         className="playback-trim-handle playback-trim-start"
         style={{ left: `${(draftStart / duration) * 100}%` }}
         onPointerDown={(event) => beginDrag('start', event)}
@@ -175,6 +176,7 @@ const PlaybackTrimHandles = ({
       />
       <button
         type="button"
+        role="slider"
         className="playback-trim-handle playback-trim-end"
         style={{ left: `${(draftEnd / duration) * 100}%` }}
         onPointerDown={(event) => beginDrag('end', event)}
