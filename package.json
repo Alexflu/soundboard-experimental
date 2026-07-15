@@ -180,7 +180,7 @@
     "@types/webpack-env": "^1.15.2",
     "@typescript-eslint/eslint-plugin": "8.63.0",
     "@typescript-eslint/parser": "8.63.0",
-    "babel-jest": "29.7.0",
+    "babel-jest": "30.4.1",
     "babel-loader": "^10.1.1",
     "chalk": "^4.1.0",
     "concurrently": "^10.0.3",
