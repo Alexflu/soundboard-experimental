@@ -35,6 +35,7 @@ const RecentlyRemovedHistory = ({
   useEffect(() => {
     let animationFrame = 0;
     let attachedContainer: HTMLDivElement | null = null;
+    let observer: MutationObserver | null = null;
 
     const attach = () => {
       const soundsContainer = document.querySelector('.sounds-view .sounds');
@@ -45,13 +46,26 @@ const RecentlyRemovedHistory = ({
 
       attachedContainer = document.createElement('div');
       attachedContainer.className = 'recently-removed-history';
-      soundsContainer.appendChild(attachedContainer);
+
+      const keepHistoryLast = () => {
+        if (
+          attachedContainer &&
+          soundsContainer.lastElementChild !== attachedContainer
+        ) {
+          soundsContainer.appendChild(attachedContainer);
+        }
+      };
+
+      keepHistoryLast();
+      observer = new MutationObserver(keepHistoryLast);
+      observer.observe(soundsContainer, { childList: true });
       setPortalTarget(attachedContainer);
     };
 
     attach();
     return () => {
       window.cancelAnimationFrame(animationFrame);
+      observer?.disconnect();
       attachedContainer?.remove();
     };
   }, []);
