@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import SoundsView from './application/view/SoundsView';
 import SettingsView from './application/view/SettingsView';
 import TopBarComponent from './application/component/TopBarComponent';
+import RecentlyRemovedHistory from './application/component/RecentlyRemovedHistory';
 import soundboardDomain from './domain/SoundboardDomain';
 import logo from '../assets/logo.svg';
 import Filters from './domain/entities/Filters';
@@ -18,6 +19,10 @@ import {
   HotkeyBinding,
   HotkeySettings,
 } from './domain/entities/UserPreferences';
+import {
+  addRecentlyRemovedSound,
+  removeRecentlyRemovedSound,
+} from './application/recentlyRemovedSounds';
 
 const { ipcRenderer } = require('electron');
 
@@ -40,6 +45,7 @@ export default function App() {
   const [shortcutRegistrationRevision, setShortcutRegistrationRevision] =
     useState(0);
   const filtersRef = useRef(filters);
+  const previousBindingsRef = useRef(initialPreferences.bindings);
 
   const registerSound = useCallback(
     (stopSound: () => void) =>
@@ -89,6 +95,23 @@ export default function App() {
   useEffect(() => {
     const unregisterPreferenceWatcher = soundboardDomain.watchUserPreferences(
       (userPreferences) => {
+        const nextBindingIds = new Set(
+          userPreferences.bindings.map((binding) => binding.sound.id)
+        );
+        const previousBindingIds = new Set(
+          previousBindingsRef.current.map((binding) => binding.sound.id)
+        );
+
+        previousBindingsRef.current
+          .filter((binding) => !nextBindingIds.has(binding.sound.id))
+          .forEach((binding) => addRecentlyRemovedSound(binding.sound));
+        userPreferences.bindings
+          .filter((binding) => !previousBindingIds.has(binding.sound.id))
+          .forEach((binding) =>
+            removeRecentlyRemovedSound(binding.sound.id)
+          );
+        previousBindingsRef.current = userPreferences.bindings;
+
         setHotkeys(userPreferences.hotkeys);
         setBindings(userPreferences.bindings);
         setHotkeySettings(userPreferences.hotkeySettings);
@@ -241,11 +264,17 @@ export default function App() {
             <Route
               path="/"
               element={
-                <SoundsView
-                  stopAllSounds={stopAllSounds}
-                  registerSound={registerSound}
-                  setGlobalFilters={setFilters}
-                />
+                <>
+                  <SoundsView
+                    stopAllSounds={stopAllSounds}
+                    registerSound={registerSound}
+                    setGlobalFilters={setFilters}
+                  />
+                  <RecentlyRemovedHistory
+                    bindings={bindings}
+                    registerSound={registerSound}
+                  />
+                </>
               }
             />
           </Routes>
