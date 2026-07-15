@@ -125,8 +125,16 @@ const RecentlyRemovedSound = ({
       setRemainingTime(Math.max(0, endTime - audioPlayer.currentTime));
     };
 
+    const finishPlayback = () => {
+      audioPlayer.removeEventListener('timeupdate', onTimeUpdate);
+      audioPlayer.removeEventListener('ended', finishPlayback);
+      audioPlayer.removeEventListener('pause', finishPlayback);
+      resetPlaybackDisplay();
+    };
+
     audioPlayer.addEventListener('timeupdate', onTimeUpdate);
-    audioPlayer.addEventListener('ended', resetPlaybackDisplay, { once: true });
+    audioPlayer.addEventListener('ended', finishPlayback);
+    audioPlayer.addEventListener('pause', finishPlayback);
   };
 
   const updateTrim = (startTime: number, endTime?: number) => {
