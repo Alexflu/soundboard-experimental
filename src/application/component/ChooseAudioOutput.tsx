@@ -33,6 +33,33 @@ class OptionsDevice {
     return new OptionsDevice(device, formatDeviceLabel(device));
   }
 
+  static fromAudioOutput(
+    audioOutput: AudioOutput,
+    availableOptions: OptionsDevice[] = []
+  ): OptionsDevice {
+    const matchingOption = availableOptions.find(
+      (option) => option.value.deviceId === audioOutput.id
+    );
+    if (matchingOption) {
+      return matchingOption;
+    }
+
+    const name =
+      audioOutput.id === 'default'
+        ? formatDeviceLabel({
+            deviceId: 'default',
+            label: audioOutput.name,
+          } as MediaDeviceInfo)
+        : audioOutput.name;
+    return new OptionsDevice(
+      {
+        deviceId: audioOutput.id,
+        label: name,
+      } as MediaDeviceInfo,
+      name
+    );
+  }
+
   static fromUserPreferences(
     userPreference: UserPreferences,
     availableOptions: OptionsDevice[] = []
@@ -52,23 +79,10 @@ class OptionsDevice {
       );
     }
 
-    const name =
-      userPreference.audioOutput.id === 'default'
-        ? formatDeviceLabel({
-            deviceId: 'default',
-            label: userPreference.audioOutput.name,
-          } as MediaDeviceInfo)
-        : userPreference.audioOutput.name;
-    return new OptionsDevice(
-      {
-        deviceId: userPreference.audioOutput.id,
-        label: name,
-      } as MediaDeviceInfo,
-      name
-    );
+    return OptionsDevice.fromAudioOutput(userPreference.audioOutput);
   }
 
-  toAudioOutput(volume: number): AudioOutput {
+  toAudioOutput(volume = 1): AudioOutput {
     return new AudioOutput(this.value.deviceId, this.label, volume);
   }
 }
@@ -79,45 +93,80 @@ type OptionState = {
   isSelected: boolean;
 };
 
+const sameAudioOutput = (left: AudioOutput, right: AudioOutput) => {
+  const leftAdditional = left.additionalOutputs || [];
+  const rightAdditional = right.additionalOutputs || [];
+  return (
+    left.id === right.id &&
+    left.name === right.name &&
+    left.volume === right.volume &&
+    leftAdditional.length === rightAdditional.length &&
+    leftAdditional.every(
+      (output, index) =>
+        output.id === rightAdditional[index]?.id &&
+        output.name === rightAdditional[index]?.name
+    )
+  );
+};
+
 const ChooseAudioOutput = () => {
   const initialPreferences = soundboardDomain.getUserPreferences();
   const [optionsDevices, setOptionsDevices] = useState([] as OptionsDevice[]);
-  const [selectedOption, setSelectedOption] = useState(
+  const [selectedMain, setSelectedMain] = useState(
     OptionsDevice.fromUserPreferences(initialPreferences)
+  );
+  const [selectedAdditional, setSelectedAdditional] = useState(
+    (initialPreferences.audioOutput.additionalOutputs || []).map((output) =>
+      OptionsDevice.fromAudioOutput(output)
+    )
+  );
+
+  const saveSelection = useCallback(
+    (main: OptionsDevice, additional: OptionsDevice[]) => {
+      const preferences = soundboardDomain.getUserPreferences();
+      const volume = preferences.audioOutput.volume ?? 1;
+      const nextOutput = new AudioOutput(
+        main.value.deviceId,
+        main.label,
+        volume,
+        additional.map((option) => option.toAudioOutput())
+      );
+
+      if (!sameAudioOutput(preferences.audioOutput, nextOutput)) {
+        soundboardDomain.setUserPreferences(
+          preferences.setAudioOutput(nextOutput)
+        );
+      }
+    },
+    []
   );
 
   const refreshDevices = useCallback(() => {
     navigator?.mediaDevices
       ?.enumerateDevices()
       .then((devices) => {
-        const optionsDevicesResult = devices
+        const available = devices
           .filter((device) => device.kind === 'audiooutput')
           .map((device) => OptionsDevice.fromMediaDeviceInfo(device));
-        const userPreferences = soundboardDomain.getUserPreferences();
-        const refreshedSelection = OptionsDevice.fromUserPreferences(
-          userPreferences,
-          optionsDevicesResult
-        );
-        const volume = userPreferences.audioOutput.volume ?? 1;
-
-        setOptionsDevices(optionsDevicesResult);
-        setSelectedOption(refreshedSelection);
-
-        if (
-          refreshedSelection.value.deviceId !==
-            userPreferences.audioOutput.id ||
-          refreshedSelection.label !== userPreferences.audioOutput.name
-        ) {
-          soundboardDomain.setUserPreferences(
-            userPreferences.setAudioOutput(
-              refreshedSelection.toAudioOutput(volume)
-            )
+        const preferences = soundboardDomain.getUserPreferences();
+        const main = OptionsDevice.fromUserPreferences(preferences, available);
+        const additional = (preferences.audioOutput.additionalOutputs || [])
+          .map((output) =>
+            available.find((option) => option.value.deviceId === output.id)
+          )
+          .filter(
+            (option): option is OptionsDevice =>
+              Boolean(option && option.value.deviceId !== main.value.deviceId)
           );
-        }
+
+        setOptionsDevices(available);
+        setSelectedMain(main);
+        setSelectedAdditional(additional);
+        saveSelection(main, additional);
         return true;
       })
       .catch((reason) => toast.error(`Cannot enumerate devices ${reason}`));
-  }, []);
+  }, [saveSelection]);
 
   useEffect(() => {
     refreshDevices();
@@ -129,14 +178,21 @@ const ChooseAudioOutput = () => {
       );
   }, [refreshDevices]);
 
-  const onSelect = (selectedOptionValue: OptionsDevice) => {
-    setSelectedOption(selectedOptionValue);
-    const preferences = soundboardDomain.getUserPreferences();
-    soundboardDomain.setUserPreferences(
-      preferences.setAudioOutput(
-        selectedOptionValue.toAudioOutput(preferences.audioOutput.volume ?? 1)
-      )
+  const onMainSelect = (nextMain: OptionsDevice) => {
+    const nextAdditional = selectedAdditional.filter(
+      (option) => option.value.deviceId !== nextMain.value.deviceId
     );
+    setSelectedMain(nextMain);
+    setSelectedAdditional(nextAdditional);
+    saveSelection(nextMain, nextAdditional);
+  };
+
+  const onAdditionalSelect = (nextValues: readonly OptionsDevice[]) => {
+    const nextAdditional = nextValues.filter(
+      (option) => option.value.deviceId !== selectedMain.value.deviceId
+    );
+    setSelectedAdditional(nextAdditional);
+    saveSelection(selectedMain, nextAdditional);
   };
 
   const customStyles = {
@@ -156,9 +212,16 @@ const ChooseAudioOutput = () => {
       boxShadow: 'none',
       minWidth: '260px',
       width: '45vw',
-      marginLeft: '12px',
     }),
     singleValue: (base: SelectStyle) => ({
+      ...base,
+      color: '#e0e0e0',
+    }),
+    multiValue: (base: SelectStyle) => ({
+      ...base,
+      backgroundColor: '#444',
+    }),
+    multiValueLabel: (base: SelectStyle) => ({
       ...base,
       color: '#e0e0e0',
     }),
@@ -169,19 +232,36 @@ const ChooseAudioOutput = () => {
     }),
   };
 
+  const additionalOptions = optionsDevices.filter(
+    (option) => option.value.deviceId !== selectedMain.value.deviceId
+  );
+
   return (
     <div className="choose-audio-output">
-      <span className="label">Choose audio output:</span>
-      <Select<OptionsDevice, false>
-        styles={customStyles}
-        value={selectedOption}
-        onChange={(value: OptionsDevice | null) => {
-          if (value) {
-            onSelect(value);
-          }
-        }}
-        options={optionsDevices}
-      />
+      <div className="audio-output-row">
+        <span className="label">Main audio output:</span>
+        <Select<OptionsDevice, false>
+          styles={customStyles}
+          value={selectedMain}
+          onChange={(value: OptionsDevice | null) => {
+            if (value) {
+              onMainSelect(value);
+            }
+          }}
+          options={optionsDevices}
+        />
+      </div>
+      <div className="audio-output-row">
+        <span className="label">Additional outputs:</span>
+        <Select<OptionsDevice, true>
+          isMulti
+          styles={customStyles}
+          value={selectedAdditional}
+          onChange={onAdditionalSelect}
+          options={additionalOptions}
+          placeholder="None"
+        />
+      </div>
     </div>
   );
 };
