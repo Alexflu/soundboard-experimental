@@ -28,7 +28,9 @@ const RecordingSettings = () => {
     navigator.mediaDevices
       ?.enumerateDevices()
       .then((devices) => {
-        setInputDevices(devices.filter((device) => device.kind === 'audioinput'));
+        setInputDevices(
+          devices.filter((device) => device.kind === 'audioinput')
+        );
         return true;
       })
       .catch((error) => toast.error(`Cannot enumerate audio inputs: ${error}`));
@@ -71,9 +73,10 @@ const RecordingSettings = () => {
   return (
     <section className="recording-settings">
       <span className="recording-settings-title">Recording</span>
-      <label>
+      <label htmlFor="recording-input-device">
         <span>Input:</span>
         <select
+          id="recording-input-device"
           value={settings.inputDeviceId}
           onChange={(event) => {
             const selected = inputDevices.find(
@@ -97,9 +100,10 @@ const RecordingSettings = () => {
           ))}
         </select>
       </label>
-      <label>
+      <label htmlFor="recording-input-gain">
         <span>Input gain:</span>
         <input
+          id="recording-input-gain"
           type="range"
           min={0}
           max={2}
@@ -111,9 +115,10 @@ const RecordingSettings = () => {
         />
         <output>{Math.round(settings.gain * 100)}%</output>
       </label>
-      <label>
+      <label htmlFor="recording-timeout">
         <span>Timeout:</span>
         <input
+          id="recording-timeout"
           className="recording-timeout"
           type="number"
           min={0}
