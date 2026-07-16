@@ -32,7 +32,8 @@ const MasterVolumeControl = () => {
         new AudioOutput(
           preferences.audioOutput.id,
           preferences.audioOutput.name,
-          nextVolume
+          nextVolume,
+          preferences.audioOutput.additionalOutputs || []
         )
       )
     );
