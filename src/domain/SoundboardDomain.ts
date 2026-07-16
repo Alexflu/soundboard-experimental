@@ -168,7 +168,13 @@ export class SoundboardDomain {
     this.setUserPreferences(
       userPreferences.upsertBinding(
         key,
-        new HotkeySound(sound.path, sound.name, sound.path, sound.source)
+        new HotkeySound(
+          sound.path,
+          sound.name,
+          sound.path,
+          sound.source,
+          sound.volume
+        )
       )
     );
     return true;
