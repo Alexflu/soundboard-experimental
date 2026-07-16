@@ -172,7 +172,9 @@ class Player {
           return;
         }
         mirrorPlayers.forEach((currentPlayer) => {
-          if (Math.abs(currentPlayer.currentTime - audioPlayer.currentTime) > 0.01) {
+          if (
+            Math.abs(currentPlayer.currentTime - audioPlayer.currentTime) > 0.01
+          ) {
             try {
               currentPlayer.currentTime = audioPlayer.currentTime;
             } catch {
