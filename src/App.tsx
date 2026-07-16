@@ -43,7 +43,7 @@ const applyAdditionalAudioOutputs = (
 export default function App() {
   const initialPreferences = soundboardDomain.getUserPreferences();
   applyAdditionalAudioOutputs(initialPreferences.audioOutput.additionalOutputs);
-  const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
+  const stopAllSoundsRef = useRef<Array<() => void>>([]);
   const [filters, setFilters] = useState(new Filters(''));
   const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
@@ -57,11 +57,9 @@ export default function App() {
   const filtersRef = useRef(filters);
   const previousBindingsRef = useRef(initialPreferences.bindings);
 
-  const registerSound = useCallback(
-    (stopSound: () => void) =>
-      setStopAllSounds((current) => current.concat(stopSound)),
-    []
-  );
+  const registerSound = useCallback((stopSound: () => void) => {
+    stopAllSoundsRef.current.push(stopSound);
+  }, []);
 
   const registerPlayer = useCallback(
     (player: { stop: () => void } | null) => {
@@ -72,10 +70,10 @@ export default function App() {
     [registerSound]
   );
 
-  const stopAll = useCallback(
-    () => stopAllSounds.forEach((stopSound) => stopSound()),
-    [stopAllSounds]
-  );
+  const stopAll = useCallback(() => {
+    const stopFunctions = stopAllSoundsRef.current.splice(0);
+    stopFunctions.forEach((stopSound) => stopSound());
+  }, []);
 
   const isTypingInField = () => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -277,7 +275,7 @@ export default function App() {
               element={
                 <>
                   <SoundsView
-                    stopAllSounds={stopAllSounds}
+                    stopAllSounds={stopAllSoundsRef.current}
                     registerSound={registerSound}
                     setGlobalFilters={setFilters}
                   />
