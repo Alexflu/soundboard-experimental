@@ -154,9 +154,8 @@ const ChooseAudioOutput = () => {
           .map((output) =>
             available.find((option) => option.value.deviceId === output.id)
           )
-          .filter(
-            (option): option is OptionsDevice =>
-              Boolean(option && option.value.deviceId !== main.value.deviceId)
+          .filter((option): option is OptionsDevice =>
+            Boolean(option && option.value.deviceId !== main.value.deviceId)
           );
 
         setOptionsDevices(available);
