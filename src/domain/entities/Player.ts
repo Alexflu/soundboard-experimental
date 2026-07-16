@@ -84,9 +84,11 @@ class Player {
       this.audioOutputDeviceId,
       ...this.additionalAudioOutputDeviceIds,
     ];
-    const audioPlayers = outputDeviceIds.map(
-      () => new Audio(this.sound.path) as HTMLAudioElement
-    );
+    const audioPlayers = outputDeviceIds.map(() => {
+      const audioPlayer = new Audio(this.sound.path) as HTMLAudioElement;
+      audioPlayer.preload = 'auto';
+      return audioPlayer;
+    });
     const [audioPlayer, ...mirrorPlayers] = audioPlayers;
     this.player = audioPlayer;
     this.mirrorPlayers = mirrorPlayers;
@@ -99,7 +101,8 @@ class Player {
         Player.setOutputDevice(currentPlayer, outputDeviceIds[index])
       )
     );
-    await Promise.all(audioPlayers.map(Player.waitForMetadata));
+    audioPlayers.forEach((currentPlayer) => currentPlayer.load());
+    await Promise.all(audioPlayers.map(Player.waitForCanPlay));
 
     if (this.player !== audioPlayer) {
       Player.activePlayers.delete(this);
@@ -163,11 +166,26 @@ class Player {
 
     Promise.all(
       audioPlayers.map((currentPlayer) => currentPlayer.play())
-    ).catch((e) => {
-      this.cleanupPlayback?.();
-      this.cleanupPlayback = undefined;
-      toast.error(`Error when playing sound : ${e}`);
-    });
+    )
+      .then(() => {
+        if (this.player !== audioPlayer) {
+          return;
+        }
+        mirrorPlayers.forEach((currentPlayer) => {
+          if (Math.abs(currentPlayer.currentTime - audioPlayer.currentTime) > 0.01) {
+            try {
+              currentPlayer.currentTime = audioPlayer.currentTime;
+            } catch {
+              // Some output devices cannot be resynchronized after playback starts.
+            }
+          }
+        });
+      })
+      .catch((e) => {
+        this.cleanupPlayback?.();
+        this.cleanupPlayback = undefined;
+        toast.error(`Error when playing sound : ${e}`);
+      });
   }
 
   setVolume(volume: number) {
@@ -209,18 +227,18 @@ class Player {
     }
   }
 
-  private static waitForMetadata(audioPlayer: HTMLAudioElement): Promise<void> {
-    if (audioPlayer.readyState >= 1) {
+  private static waitForCanPlay(audioPlayer: HTMLAudioElement): Promise<void> {
+    if (audioPlayer.readyState >= 3) {
       return Promise.resolve();
     }
 
     return new Promise((resolve) => {
       const finish = () => {
-        audioPlayer.removeEventListener('loadedmetadata', finish);
+        audioPlayer.removeEventListener('canplay', finish);
         audioPlayer.removeEventListener('error', finish);
         resolve();
       };
-      audioPlayer.addEventListener('loadedmetadata', finish, { once: true });
+      audioPlayer.addEventListener('canplay', finish, { once: true });
       audioPlayer.addEventListener('error', finish, { once: true });
     });
   }
