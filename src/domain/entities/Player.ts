@@ -164,12 +164,10 @@ class Player {
       Player.activePlayers.delete(this);
     };
 
-    Promise.all(
-      audioPlayers.map((currentPlayer) => currentPlayer.play())
-    )
+    Promise.all(audioPlayers.map((currentPlayer) => currentPlayer.play()))
       .then(() => {
         if (this.player !== audioPlayer) {
-          return;
+          return false;
         }
         mirrorPlayers.forEach((currentPlayer) => {
           if (
@@ -182,6 +180,7 @@ class Player {
             }
           }
         });
+        return true;
       })
       .catch((e) => {
         this.cleanupPlayback?.();
