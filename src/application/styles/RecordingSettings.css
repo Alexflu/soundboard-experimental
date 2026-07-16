@@ -1,0 +1,59 @@
+.recording-settings {
+  width: 100%;
+  margin: 14px 0;
+  padding: 12px 0;
+  border-top: 1px solid grey;
+  border-bottom: 1px solid grey;
+}
+
+.recording-settings-title {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.recording-settings label,
+.recording-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.recording-settings label > span,
+.recording-folder-row > span {
+  width: 150px;
+  flex: 0 0 150px;
+}
+
+.recording-settings select,
+.recording-folder-row input {
+  min-width: 260px;
+  flex: 1;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #e0e0e0;
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
+
+.recording-settings input[type='range'] {
+  width: 260px;
+}
+
+.recording-settings .recording-timeout {
+  width: 90px;
+  height: 30px;
+  border: 1px solid #e0e0e0;
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
+
+.recording-settings button {
+  height: 34px;
+  border: 1px solid #e0e0e0;
+  background: #3a3a3a;
+  color: #e0e0e0;
+  cursor: pointer;
+}
