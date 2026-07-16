@@ -33,8 +33,7 @@ class Player {
     sound: Sound,
     audioOutputDeviceId: string,
     masterVolume = Player.globalMasterVolume,
-    additionalAudioOutputDeviceIds =
-      Player.globalAdditionalAudioOutputDeviceIds
+    additionalAudioOutputDeviceIds = Player.globalAdditionalAudioOutputDeviceIds
   ) {
     this.sound = sound;
     this.audioOutputDeviceId = audioOutputDeviceId || 'default';
@@ -162,13 +161,13 @@ class Player {
       Player.activePlayers.delete(this);
     };
 
-    Promise.all(audioPlayers.map((currentPlayer) => currentPlayer.play())).catch(
-      (e) => {
-        this.cleanupPlayback?.();
-        this.cleanupPlayback = undefined;
-        toast.error(`Error when playing sound : ${e}`);
-      }
-    );
+    Promise.all(
+      audioPlayers.map((currentPlayer) => currentPlayer.play())
+    ).catch((e) => {
+      this.cleanupPlayback?.();
+      this.cleanupPlayback = undefined;
+      toast.error(`Error when playing sound : ${e}`);
+    });
   }
 
   setVolume(volume: number) {
