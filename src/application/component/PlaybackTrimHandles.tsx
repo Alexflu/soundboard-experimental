@@ -168,8 +168,12 @@ const PlaybackTrimHandles = ({
     commit();
   };
 
-  const draggingTime =
-    draggingHandle === 'start' ? draftStart : draggingHandle ? draftEnd : null;
+  let draggingTime: number | null = null;
+  if (draggingHandle === 'start') {
+    draggingTime = draftStart;
+  } else if (draggingHandle === 'end') {
+    draggingTime = draftEnd;
+  }
 
   return (
     <div className="playback-trim" ref={trackRef}>
