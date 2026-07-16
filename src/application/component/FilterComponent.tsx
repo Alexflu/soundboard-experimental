@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import Filters from '../../domain/entities/Filters';
 import MasterVolumeControl from './MasterVolumeControl';
+import RecordingControl from './RecordingControl';
 
 const FilterComponent = ({
   sendFiltersToParent,
@@ -62,6 +63,7 @@ const FilterComponent = ({
         </button>
       )}
       <MasterVolumeControl />
+      <RecordingControl />
     </div>
   );
 };
