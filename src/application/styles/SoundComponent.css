@@ -75,6 +75,7 @@
 .sound-component .name-description-container {
   display: flex;
   flex-direction: column;
+  font-size: 14px;
   font-weight: bold;
   min-width: 0;
 }
