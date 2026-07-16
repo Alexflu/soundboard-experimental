@@ -54,6 +54,7 @@ export default function App() {
   );
   const [shortcutRegistrationRevision, setShortcutRegistrationRevision] =
     useState(0);
+  const [soundListRevision, setSoundListRevision] = useState(0);
   const filtersRef = useRef(filters);
   const previousBindingsRef = useRef(initialPreferences.bindings);
 
@@ -98,6 +99,14 @@ export default function App() {
         'soundboard:hotkey-capture-ended',
         onCaptureEnded
       );
+  }, []);
+
+  useEffect(() => {
+    const onRecordingSaved = () =>
+      setSoundListRevision((current) => current + 1);
+    window.addEventListener('soundboard:recording-saved', onRecordingSaved);
+    return () =>
+      window.removeEventListener('soundboard:recording-saved', onRecordingSaved);
   }, []);
 
   useEffect(() => {
@@ -275,6 +284,7 @@ export default function App() {
               element={
                 <>
                   <SoundsView
+                    key={soundListRevision}
                     stopAllSounds={stopAllSoundsRef.current}
                     registerSound={registerSound}
                     setGlobalFilters={setFilters}
