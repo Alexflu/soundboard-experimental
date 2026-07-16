@@ -13,8 +13,22 @@
   width: 100%;
 }
 
+.choose-audio-output .additional-output-row {
+  align-items: flex-start;
+}
+
+.choose-audio-output .additional-output-selects {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .choose-audio-output .label {
   width: 190px;
   flex: 0 0 190px;
   font-size: 20px;
+}
+
+.choose-audio-output .additional-output-row .label {
+  padding-top: 8px;
 }
