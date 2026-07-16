@@ -9,6 +9,7 @@ import SettingsView from './application/view/SettingsView';
 import TopBarComponent from './application/component/TopBarComponent';
 import RecentlyRemovedHistory from './application/component/RecentlyRemovedHistory';
 import soundboardDomain from './domain/SoundboardDomain';
+import Player from './domain/entities/Player';
 import logo from '../assets/logo.svg';
 import Filters from './domain/entities/Filters';
 import {
@@ -31,9 +32,18 @@ type HotkeyHandler = {
   errorMessage: string;
 };
 
+const applyAdditionalAudioOutputs = (
+  outputs: Array<{ id: string }> | undefined
+) => {
+  Player.setGlobalAdditionalAudioOutputDeviceIds(
+    (outputs || []).map((output) => output.id)
+  );
+};
+
 export default function App() {
   const initialPreferences = soundboardDomain.getUserPreferences();
-  const [stopAllSounds, setStopAllSounds] = useState([] as (() => void)[]);
+  applyAdditionalAudioOutputs(initialPreferences.audioOutput.additionalOutputs);
+  const stopAllSoundsRef = useRef<Array<() => void>>([]);
   const [filters, setFilters] = useState(new Filters(''));
   const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
   const [bindings, setBindings] = useState<HotkeyBinding[]>(
@@ -47,11 +57,9 @@ export default function App() {
   const filtersRef = useRef(filters);
   const previousBindingsRef = useRef(initialPreferences.bindings);
 
-  const registerSound = useCallback(
-    (stopSound: () => void) =>
-      setStopAllSounds((current) => current.concat(stopSound)),
-    []
-  );
+  const registerSound = useCallback((stopSound: () => void) => {
+    stopAllSoundsRef.current.push(stopSound);
+  }, []);
 
   const registerPlayer = useCallback(
     (player: { stop: () => void } | null) => {
@@ -62,10 +70,10 @@ export default function App() {
     [registerSound]
   );
 
-  const stopAll = useCallback(
-    () => stopAllSounds.forEach((stopSound) => stopSound()),
-    [stopAllSounds]
-  );
+  const stopAll = useCallback(() => {
+    const stopFunctions = stopAllSoundsRef.current.splice(0);
+    stopFunctions.forEach((stopSound) => stopSound());
+  }, []);
 
   const isTypingInField = () => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -110,6 +118,9 @@ export default function App() {
           .forEach((binding) => removeRecentlyRemovedSound(binding.sound.id));
         previousBindingsRef.current = userPreferences.bindings;
 
+        applyAdditionalAudioOutputs(
+          userPreferences.audioOutput.additionalOutputs
+        );
         setHotkeys(userPreferences.hotkeys);
         setBindings(userPreferences.bindings);
         setHotkeySettings(userPreferences.hotkeySettings);
@@ -264,7 +275,7 @@ export default function App() {
               element={
                 <>
                   <SoundsView
-                    stopAllSounds={stopAllSounds}
+                    stopAllSounds={stopAllSoundsRef.current}
                     registerSound={registerSound}
                     setGlobalFilters={setFilters}
                   />

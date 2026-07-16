@@ -13,31 +13,55 @@ class Player {
 
   private static globalMasterVolume = 1;
 
+  private static globalAdditionalAudioOutputDeviceIds: string[] = [];
+
   player: HTMLAudioElement | undefined;
 
   sound: Sound;
 
   audioOutputDeviceId: string;
 
+  additionalAudioOutputDeviceIds: string[];
+
   masterVolume: number;
+
+  private mirrorPlayers: HTMLAudioElement[];
 
   private cleanupPlayback?: () => void;
 
   constructor(
     sound: Sound,
     audioOutputDeviceId: string,
-    masterVolume = Player.globalMasterVolume
+    masterVolume = Player.globalMasterVolume,
+    additionalAudioOutputDeviceIds = Player.globalAdditionalAudioOutputDeviceIds
   ) {
     this.sound = sound;
-    this.audioOutputDeviceId = audioOutputDeviceId;
+    this.audioOutputDeviceId = audioOutputDeviceId || 'default';
+    const seen = new Set([this.audioOutputDeviceId]);
+    this.additionalAudioOutputDeviceIds = additionalAudioOutputDeviceIds.filter(
+      (deviceId) => {
+        if (!deviceId || seen.has(deviceId)) {
+          return false;
+        }
+        seen.add(deviceId);
+        return true;
+      }
+    );
     this.masterVolume = normalizeVolume(masterVolume);
     this.player = undefined;
+    this.mirrorPlayers = [];
   }
 
   static setGlobalMasterVolume(volume: number) {
     Player.globalMasterVolume = normalizeVolume(volume);
     Player.activePlayers.forEach((player) =>
       player.setMasterVolume(Player.globalMasterVolume)
+    );
+  }
+
+  static setGlobalAdditionalAudioOutputDeviceIds(deviceIds: string[]) {
+    Player.globalAdditionalAudioOutputDeviceIds = Array.from(
+      new Set(deviceIds.filter(Boolean))
     );
   }
 
@@ -52,26 +76,34 @@ class Player {
   }
 
   async play() {
-    const audioPlayer = new Audio(this.sound.path) as HTMLAudioElement;
+    if (this.player) {
+      this.stop();
+    }
+
+    const outputDeviceIds = [
+      this.audioOutputDeviceId,
+      ...this.additionalAudioOutputDeviceIds,
+    ];
+    const audioPlayers = outputDeviceIds.map(() => {
+      const audioPlayer = new Audio(this.sound.path) as HTMLAudioElement;
+      audioPlayer.preload = 'auto';
+      return audioPlayer;
+    });
+    const [audioPlayer, ...mirrorPlayers] = audioPlayers;
     this.player = audioPlayer;
+    this.mirrorPlayers = mirrorPlayers;
     this.masterVolume = Player.globalMasterVolume;
     this.applyVolume();
     Player.activePlayers.add(this);
 
-    if (this.audioOutputDeviceId !== 'default') {
-      const playerWithSinkId = audioPlayer as AudioWithSinkId;
-      try {
-        if (typeof playerWithSinkId.setSinkId !== 'function') {
-          throw new Error('setSinkId is not supported by this browser');
-        }
+    await Promise.all(
+      audioPlayers.map((currentPlayer, index) =>
+        Player.setOutputDevice(currentPlayer, outputDeviceIds[index])
+      )
+    );
+    audioPlayers.forEach((currentPlayer) => currentPlayer.load());
+    await Promise.all(audioPlayers.map(Player.waitForCanPlay));
 
-        await playerWithSinkId.setSinkId(this.audioOutputDeviceId);
-      } catch (e) {
-        toast.error(`Error when setting sinkId: ${e}`);
-      }
-    }
-
-    await Player.waitForMetadata(audioPlayer);
     if (this.player !== audioPlayer) {
       Player.activePlayers.delete(this);
       return;
@@ -92,18 +124,20 @@ class Player {
     const validEndTime =
       endTime !== undefined && endTime > startTime ? endTime : undefined;
 
-    try {
-      audioPlayer.currentTime = startTime;
-    } catch {
-      // Some failed or not-yet-seekable media cannot accept currentTime.
-    }
+    audioPlayers.forEach((currentPlayer) => {
+      try {
+        currentPlayer.currentTime = startTime;
+      } catch {
+        // Some failed or not-yet-seekable media cannot accept currentTime.
+      }
+    });
 
     const onTrimEnd = () => {
       if (
         validEndTime !== undefined &&
         audioPlayer.currentTime >= validEndTime
       ) {
-        audioPlayer.pause();
+        audioPlayers.forEach((currentPlayer) => currentPlayer.pause());
         audioPlayer.dispatchEvent(new Event('ended'));
       }
     };
@@ -116,6 +150,7 @@ class Player {
 
     const finishPlayback = () => {
       audioPlayer.removeEventListener('timeupdate', onTrimEnd);
+      mirrorPlayers.forEach((currentPlayer) => currentPlayer.pause());
       Player.activePlayers.delete(this);
       if (this.player === audioPlayer) {
         this.cleanupPlayback = undefined;
@@ -125,14 +160,33 @@ class Player {
     this.cleanupPlayback = () => {
       audioPlayer.removeEventListener('timeupdate', onTrimEnd);
       audioPlayer.removeEventListener('ended', finishPlayback);
+      mirrorPlayers.forEach((currentPlayer) => currentPlayer.pause());
       Player.activePlayers.delete(this);
     };
 
-    audioPlayer.play().catch((e) => {
-      this.cleanupPlayback?.();
-      this.cleanupPlayback = undefined;
-      toast.error(`Error when playing sound : ${e}`);
-    });
+    Promise.all(audioPlayers.map((currentPlayer) => currentPlayer.play()))
+      .then(() => {
+        if (this.player !== audioPlayer) {
+          return false;
+        }
+        mirrorPlayers.forEach((currentPlayer) => {
+          if (
+            Math.abs(currentPlayer.currentTime - audioPlayer.currentTime) > 0.01
+          ) {
+            try {
+              currentPlayer.currentTime = audioPlayer.currentTime;
+            } catch {
+              // Some output devices cannot be resynchronized after playback starts.
+            }
+          }
+        });
+        return true;
+      })
+      .catch((e) => {
+        this.cleanupPlayback?.();
+        this.cleanupPlayback = undefined;
+        toast.error(`Error when playing sound : ${e}`);
+      });
   }
 
   setVolume(volume: number) {
@@ -146,40 +200,65 @@ class Player {
   }
 
   private applyVolume() {
-    if (this.player) {
-      this.player.volume = this.sound.volume * this.masterVolume;
+    this.getAudioPlayers().forEach((audioPlayer) => {
+      audioPlayer.volume = this.sound.volume * this.masterVolume;
+    });
+  }
+
+  private getAudioPlayers(): HTMLAudioElement[] {
+    return this.player ? [this.player, ...this.mirrorPlayers] : [];
+  }
+
+  private static async setOutputDevice(
+    audioPlayer: HTMLAudioElement,
+    deviceId: string
+  ): Promise<void> {
+    if (deviceId === 'default') {
+      return;
+    }
+
+    const playerWithSinkId = audioPlayer as AudioWithSinkId;
+    try {
+      if (typeof playerWithSinkId.setSinkId !== 'function') {
+        throw new Error('setSinkId is not supported by this browser');
+      }
+      await playerWithSinkId.setSinkId(deviceId);
+    } catch (e) {
+      toast.error(`Error when setting audio output: ${e}`);
     }
   }
 
-  private static waitForMetadata(audioPlayer: HTMLAudioElement): Promise<void> {
-    if (audioPlayer.readyState >= 1) {
+  private static waitForCanPlay(audioPlayer: HTMLAudioElement): Promise<void> {
+    if (audioPlayer.readyState >= 3) {
       return Promise.resolve();
     }
 
     return new Promise((resolve) => {
       const finish = () => {
-        audioPlayer.removeEventListener('loadedmetadata', finish);
+        audioPlayer.removeEventListener('canplay', finish);
         audioPlayer.removeEventListener('error', finish);
         resolve();
       };
-      audioPlayer.addEventListener('loadedmetadata', finish, { once: true });
+      audioPlayer.addEventListener('canplay', finish, { once: true });
       audioPlayer.addEventListener('error', finish, { once: true });
     });
   }
 
   stop() {
-    if (this.player) {
-      this.player.pause();
+    const audioPlayers = this.getAudioPlayers();
+    audioPlayers.forEach((audioPlayer) => {
+      audioPlayer.pause();
       try {
-        this.player.currentTime = 0;
+        audioPlayer.currentTime = 0;
       } catch {
         // Media may be stopped before it becomes seekable.
       }
-    }
+    });
     this.cleanupPlayback?.();
     this.cleanupPlayback = undefined;
     Player.activePlayers.delete(this);
     delete this.player;
+    this.mirrorPlayers = [];
   }
 }
 
