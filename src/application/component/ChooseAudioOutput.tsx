@@ -186,12 +186,33 @@ const ChooseAudioOutput = () => {
     saveSelection(nextMain, nextAdditional);
   };
 
-  const onAdditionalSelect = (nextValues: readonly OptionsDevice[]) => {
-    const nextAdditional = nextValues.filter(
-      (option) => option.value.deviceId !== selectedMain.value.deviceId
-    );
+  const saveAdditional = (nextAdditional: OptionsDevice[]) => {
     setSelectedAdditional(nextAdditional);
     saveSelection(selectedMain, nextAdditional);
+  };
+
+  const updateAdditional = (
+    index: number,
+    nextValue: OptionsDevice | null
+  ) => {
+    if (!nextValue) {
+      saveAdditional(
+        selectedAdditional.filter((_, currentIndex) => currentIndex !== index)
+      );
+      return;
+    }
+
+    saveAdditional(
+      selectedAdditional.map((option, currentIndex) =>
+        currentIndex === index ? nextValue : option
+      )
+    );
+  };
+
+  const addAdditional = (nextValue: OptionsDevice | null) => {
+    if (nextValue) {
+      saveAdditional(selectedAdditional.concat(nextValue));
+    }
   };
 
   const customStyles = {
@@ -216,14 +237,6 @@ const ChooseAudioOutput = () => {
       ...base,
       color: '#e0e0e0',
     }),
-    multiValue: (base: SelectStyle) => ({
-      ...base,
-      backgroundColor: '#444',
-    }),
-    multiValueLabel: (base: SelectStyle) => ({
-      ...base,
-      color: '#e0e0e0',
-    }),
     menu: (base: SelectStyle) => ({
       ...base,
       backgroundColor: '#2d2d2d',
@@ -231,9 +244,17 @@ const ChooseAudioOutput = () => {
     }),
   };
 
-  const additionalOptions = optionsDevices.filter(
-    (option) => option.value.deviceId !== selectedMain.value.deviceId
+  const selectedAdditionalIds = new Set(
+    selectedAdditional.map((option) => option.value.deviceId)
   );
+  const getAdditionalOptions = (current?: OptionsDevice) =>
+    optionsDevices.filter(
+      (option) =>
+        option.value.deviceId !== selectedMain.value.deviceId &&
+        (option.value.deviceId === current?.value.deviceId ||
+          !selectedAdditionalIds.has(option.value.deviceId))
+    );
+  const emptyAdditionalOptions = getAdditionalOptions();
 
   return (
     <div className="choose-audio-output">
@@ -250,16 +271,31 @@ const ChooseAudioOutput = () => {
           options={optionsDevices}
         />
       </div>
-      <div className="audio-output-row">
+      <div className="audio-output-row additional-output-row">
         <span className="label">Additional outputs:</span>
-        <Select<OptionsDevice, true>
-          isMulti
-          styles={customStyles}
-          value={selectedAdditional}
-          onChange={onAdditionalSelect}
-          options={additionalOptions}
-          placeholder="None"
-        />
+        <div className="additional-output-selects">
+          {selectedAdditional.map((option, index) => (
+            <Select<OptionsDevice, false>
+              key={option.value.deviceId}
+              isClearable
+              styles={customStyles}
+              value={option}
+              onChange={(value: OptionsDevice | null) =>
+                updateAdditional(index, value)
+              }
+              options={getAdditionalOptions(option)}
+            />
+          ))}
+          {emptyAdditionalOptions.length > 0 && (
+            <Select<OptionsDevice, false>
+              styles={customStyles}
+              value={null}
+              onChange={addAdditional}
+              options={emptyAdditionalOptions}
+              placeholder="Add output..."
+            />
+          )}
+        </div>
       </div>
     </div>
   );
