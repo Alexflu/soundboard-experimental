@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FaCircle, FaStop } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import soundboardDomain from '../../domain/SoundboardDomain';
@@ -20,7 +20,7 @@ const RecordingControl = () => {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -29,9 +29,9 @@ const RecordingControl = () => {
       clearInterval(elapsedRef.current);
       elapsedRef.current = null;
     }
-  };
+  }, []);
 
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
     clearTimers();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -40,7 +40,7 @@ const RecordingControl = () => {
     recorderRef.current = null;
     setIsRecording(false);
     setElapsedSeconds(0);
-  };
+  }, [clearTimers]);
 
   const stopRecording = () => {
     const recorder = recorderRef.current;
@@ -141,7 +141,7 @@ const RecordingControl = () => {
         cleanup();
       }
     },
-    []
+    [cleanup]
   );
 
   return (
