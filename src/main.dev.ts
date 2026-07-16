@@ -219,7 +219,10 @@ const createWindow = async () => {
       );
       const extension = payload.extension === 'ogg' ? 'ogg' : 'webm';
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filePath = path.join(directory, `recording-${timestamp}.${extension}`);
+      const filePath = path.join(
+        directory,
+        `recording-${timestamp}.${extension}`
+      );
       fs.writeFileSync(filePath, Buffer.from(payload.data));
       return filePath;
     }
