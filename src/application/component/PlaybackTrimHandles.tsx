@@ -15,6 +15,16 @@ type PlaybackTrimHandlesProps = {
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(maximum, Math.max(minimum, value));
 
+const formatTrimTime = (value: number) => {
+  const hundredths = Math.max(0, Math.round(value * 100));
+  const minutes = Math.floor(hundredths / 6000);
+  const seconds = Math.floor((hundredths % 6000) / 100);
+  const fraction = hundredths % 100;
+  return `${minutes}:${String(seconds).padStart(2, '0')}.${String(
+    fraction
+  ).padStart(2, '0')}`;
+};
+
 const PlaybackTrimHandles = ({
   duration,
   startTime = 0,
@@ -24,6 +34,7 @@ const PlaybackTrimHandles = ({
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [draftStart, setDraftStart] = useState(startTime);
   const [draftEnd, setDraftEnd] = useState(endTime ?? duration ?? 0);
+  const [draggingHandle, setDraggingHandle] = useState<TrimHandle | null>(null);
   const activeHandle = useRef<TrimHandle | null>(null);
   const draftStartRef = useRef(draftStart);
   const draftEndRef = useRef(draftEnd);
@@ -111,6 +122,7 @@ const PlaybackTrimHandles = ({
     event.preventDefault();
     event.stopPropagation();
     activeHandle.current = handle;
+    setDraggingHandle(handle);
     event.currentTarget.setPointerCapture(event.pointerId);
     updateFromPointer(handle, event.clientX);
   };
@@ -131,6 +143,7 @@ const PlaybackTrimHandles = ({
     event.preventDefault();
     event.stopPropagation();
     activeHandle.current = null;
+    setDraggingHandle(null);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -155,8 +168,21 @@ const PlaybackTrimHandles = ({
     commit();
   };
 
+  let draggingTime: number | null = null;
+  if (draggingHandle === 'start') {
+    draggingTime = draftStart;
+  } else if (draggingHandle === 'end') {
+    draggingTime = draftEnd;
+  }
+
   return (
     <div className="playback-trim" ref={trackRef}>
+      {draggingHandle && draggingTime !== null && (
+        <span className="playback-trim-time">
+          {draggingHandle === 'start' ? 'Start' : 'End'}{' '}
+          {formatTrimTime(draggingTime)}
+        </span>
+      )}
       <button
         type="button"
         role="slider"
