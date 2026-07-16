@@ -191,10 +191,7 @@ const ChooseAudioOutput = () => {
     saveSelection(selectedMain, nextAdditional);
   };
 
-  const updateAdditional = (
-    index: number,
-    nextValue: OptionsDevice | null
-  ) => {
+  const updateAdditional = (index: number, nextValue: OptionsDevice | null) => {
     if (!nextValue) {
       saveAdditional(
         selectedAdditional.filter((_, currentIndex) => currentIndex !== index)
