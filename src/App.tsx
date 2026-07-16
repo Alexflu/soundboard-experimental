@@ -106,7 +106,10 @@ export default function App() {
       setSoundListRevision((current) => current + 1);
     window.addEventListener('soundboard:recording-saved', onRecordingSaved);
     return () =>
-      window.removeEventListener('soundboard:recording-saved', onRecordingSaved);
+      window.removeEventListener(
+        'soundboard:recording-saved',
+        onRecordingSaved
+      );
   }, []);
 
   useEffect(() => {
