@@ -13,6 +13,8 @@ class Player {
 
   private static globalMasterVolume = 1;
 
+  private static globalAdditionalAudioOutputDeviceIds: string[] = [];
+
   player: HTMLAudioElement | undefined;
 
   sound: Sound;
@@ -31,7 +33,8 @@ class Player {
     sound: Sound,
     audioOutputDeviceId: string,
     masterVolume = Player.globalMasterVolume,
-    additionalAudioOutputDeviceIds: string[] = []
+    additionalAudioOutputDeviceIds =
+      Player.globalAdditionalAudioOutputDeviceIds
   ) {
     this.sound = sound;
     this.audioOutputDeviceId = audioOutputDeviceId || 'default';
@@ -54,6 +57,12 @@ class Player {
     Player.globalMasterVolume = normalizeVolume(volume);
     Player.activePlayers.forEach((player) =>
       player.setMasterVolume(Player.globalMasterVolume)
+    );
+  }
+
+  static setGlobalAdditionalAudioOutputDeviceIds(deviceIds: string[]) {
+    Player.globalAdditionalAudioOutputDeviceIds = Array.from(
+      new Set(deviceIds.filter(Boolean))
     );
   }
 
