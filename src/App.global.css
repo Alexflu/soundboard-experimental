@@ -12,6 +12,7 @@
 @import 'application/styles/AddSound.css';
 @import 'application/styles/RemoveSound.css';
 @import 'application/styles/HotkeySettings.css';
+@import 'application/styles/RecentlyRemovedHistory.css';
 
 /* toastify */
 @import '../node_modules/react-toastify/dist/ReactToastify.css';

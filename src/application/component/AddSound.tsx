@@ -13,6 +13,7 @@ const AddSound = ({ reloadSounds }: { reloadSounds: () => void }) => {
       const filePath = webUtils?.getPathForFile?.(file) || file.path || '';
       soundboardDomain.addSound(filePath);
       reloadSounds();
+      window.dispatchEvent(new Event('soundboard:localSoundsChanged'));
       event.target.value = '';
     }
   };

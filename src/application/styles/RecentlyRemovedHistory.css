@@ -1,0 +1,24 @@
+.recently-removed-history {
+  border-top: 1px solid grey;
+  margin-top: 10px;
+  padding-top: 8px;
+}
+
+.recently-removed-title {
+  display: block;
+  font-weight: bold;
+  margin: 0 10px 6px;
+}
+
+.recently-removed-sound .recently-removed-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #c60000;
+  cursor: pointer;
+}
