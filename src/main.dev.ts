@@ -223,7 +223,11 @@ const createWindow = async () => {
         directory,
         `recording-${timestamp}.${extension}`
       );
-      fs.writeFileSync(filePath, Buffer.from(payload.data));
+      const recordingData =
+        payload.data instanceof ArrayBuffer
+          ? new Uint8Array(payload.data)
+          : payload.data;
+      fs.writeFileSync(filePath, Buffer.from(recordingData));
       return filePath;
     }
   );
