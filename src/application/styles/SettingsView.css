@@ -1,11 +1,18 @@
-.settings-view .button {
-   text-decoration: none;
-   color: inherit;
-   margin-bottom: 30px;
-   display: block;
-   width: fit-content;
+.settings-view {
+  height: calc(100vh - 112px);
+  overflow-y: auto;
+  padding-right: 10px;
+  box-sizing: border-box;
 }
 
-.settings-view .button .icon{
-   font-size: 45px;
+.settings-view .button {
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 30px;
+  display: block;
+  width: fit-content;
+}
+
+.settings-view .button .icon {
+  font-size: 45px;
 }
