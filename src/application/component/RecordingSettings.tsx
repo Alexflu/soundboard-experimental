@@ -46,6 +46,19 @@ const RecordingSettings = () => {
       );
   }, [refreshDevices]);
 
+  useEffect(() => {
+    const syncSettings = () => setSettings(getRecordingSettings());
+    window.addEventListener(
+      'soundboard:recording-settings-changed',
+      syncSettings
+    );
+    return () =>
+      window.removeEventListener(
+        'soundboard:recording-settings-changed',
+        syncSettings
+      );
+  }, []);
+
   const chooseDirectory = async () => {
     const directory = await ipcRenderer.invoke(
       'dialog:choose-recording-folder',
