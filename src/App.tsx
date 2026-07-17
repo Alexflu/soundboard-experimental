@@ -8,6 +8,7 @@ import SoundsView from './application/view/SoundsView';
 import SettingsView from './application/view/SettingsView';
 import TopBarComponent from './application/component/TopBarComponent';
 import RecentlyRemovedHistory from './application/component/RecentlyRemovedHistory';
+import RangeValueTooltip from './application/component/RangeValueTooltip';
 import soundboardDomain from './domain/SoundboardDomain';
 import Player from './domain/entities/Player';
 import logo from '../assets/logo.svg';
@@ -262,6 +263,7 @@ export default function App() {
   return (
     <Router>
       <div className="app-view">
+        <RangeValueTooltip />
         <TopBarComponent />
         <div className="menu">
           <span className="title">
