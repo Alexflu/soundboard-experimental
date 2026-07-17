@@ -24,9 +24,9 @@
 }
 
 .choose-audio-output .label {
-  width: 190px;
-  flex: 0 0 190px;
-  font-size: 20px;
+  width: 150px;
+  flex: 0 0 150px;
+  font-size: 16px;
 }
 
 .choose-audio-output .additional-output-row .label {
