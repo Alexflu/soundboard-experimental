@@ -88,7 +88,10 @@ const CompactAudioControls = () => {
     };
     window.addEventListener('soundboard:recording-level', onRecordingLevel);
     return () =>
-      window.removeEventListener('soundboard:recording-level', onRecordingLevel);
+      window.removeEventListener(
+        'soundboard:recording-level',
+        onRecordingLevel
+      );
   }, []);
 
   useEffect(() => {
