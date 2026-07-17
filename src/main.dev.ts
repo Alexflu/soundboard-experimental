@@ -5,6 +5,7 @@ import path from 'path';
 import {
   app,
   BrowserWindow,
+  desktopCapturer,
   dialog,
   ipcMain,
   Menu,
@@ -102,6 +103,34 @@ const createWindow = async () => {
   ) {
     await installExtensions();
   }
+
+  session.defaultSession.setDisplayMediaRequestHandler(
+    (_request, callback) => {
+      desktopCapturer
+        .getSources({
+          types: ['screen'],
+          thumbnailSize: { width: 0, height: 0 },
+        })
+        .then((sources) => {
+          const source = sources[0];
+          if (!source) {
+            callback({});
+            return false;
+          }
+          if (process.platform === 'win32') {
+            callback({ video: source, audio: 'loopback' });
+          } else {
+            callback({ video: source });
+          }
+          return true;
+        })
+        .catch((error) => {
+          log.error('System audio capture is unavailable', error);
+          callback({});
+          return false;
+        });
+    }
+  );
 
   const resourcesPath = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
@@ -301,6 +330,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+  session.defaultSession.setDisplayMediaRequestHandler(null);
   shortcutManager?.stop();
   shortcutManager = null;
   tray?.destroy();
