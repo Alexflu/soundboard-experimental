@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FaGlobeAmericas, FaHdd, FaPlay, FaStop } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Sound from '../../domain/entities/Sound';
@@ -13,6 +13,7 @@ import RemoveSound from './RemoveSound';
 import { captureHotkey } from './hotkeyCapture';
 import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
 import PlaybackTrimHandles from './PlaybackTrimHandles';
+import { getAudioDuration } from '../audioDuration';
 
 const formatDuration = (duration: number | null) => {
   if (duration === null || !Number.isFinite(duration)) {
@@ -69,10 +70,34 @@ const SoundComponent = ({
   const playbackDuration =
     playbackEnd === null ? null : Math.max(0, playbackEnd - playbackStart);
 
-  const resetPlaybackDisplay = () => {
+  const updateKnownDuration = useCallback(
+    (totalDuration: number) => {
+      if (!Number.isFinite(totalDuration) || totalDuration <= 0) {
+        return null;
+      }
+
+      setDuration(totalDuration);
+      const startTime = Math.min(trimStart, totalDuration);
+      const endTime = Math.max(
+        startTime,
+        Math.min(trimEnd ?? totalDuration, totalDuration)
+      );
+      const selectedDuration = Math.max(0, endTime - startTime);
+      setRemainingTime(selectedDuration);
+      return selectedDuration;
+    },
+    [trimEnd, trimStart]
+  );
+
+  const resetPlaybackDisplay = (totalDuration?: number) => {
     setIsPlaying(false);
     setProgress(0);
-    setRemainingTime(playbackDuration);
+    if (
+      totalDuration === undefined ||
+      updateKnownDuration(totalDuration) === null
+    ) {
+      setRemainingTime(playbackDuration);
+    }
   };
 
   const stop = () => {
@@ -101,6 +126,7 @@ const SoundComponent = ({
         return;
       }
 
+      setDuration(totalDuration);
       const startTime = Math.min(trimStart, totalDuration);
       const endTime = Math.max(
         startTime,
@@ -120,8 +146,21 @@ const SoundComponent = ({
       setRemainingTime(Math.max(0, endTime - audioPlayer.currentTime));
     };
 
+    let playbackFinished = false;
+    const finishPlayback = () => {
+      if (playbackFinished) {
+        return;
+      }
+      playbackFinished = true;
+      audioPlayer.removeEventListener('timeupdate', onTimeUpdate);
+      audioPlayer.removeEventListener('ended', finishPlayback);
+      audioPlayer.removeEventListener('pause', finishPlayback);
+      resetPlaybackDisplay(audioPlayer.duration);
+    };
+
     audioPlayer.addEventListener('timeupdate', onTimeUpdate);
-    audioPlayer.addEventListener('ended', resetPlaybackDisplay, { once: true });
+    audioPlayer.addEventListener('ended', finishPlayback, { once: true });
+    audioPlayer.addEventListener('pause', finishPlayback, { once: true });
   };
 
   const updateVolume = (nextVolume: number) => {
@@ -223,26 +262,19 @@ const SoundComponent = ({
   }, [duration, player, sound, trim]);
 
   useEffect(() => {
-    const metadataPlayer = new Audio(sound.path);
-    metadataPlayer.preload = 'metadata';
-    const onMetadata = () => {
-      const totalDuration = metadataPlayer.duration;
-      setDuration(totalDuration);
-      setRemainingTime(
-        Math.max(
-          0,
-          Math.min(trimEnd ?? totalDuration, totalDuration) -
-            Math.min(trimStart, totalDuration)
-        )
-      );
+    let cancelled = false;
+    const loadDuration = async () => {
+      const totalDuration = await getAudioDuration(sound.path);
+      if (!cancelled && totalDuration !== null) {
+        updateKnownDuration(totalDuration);
+      }
     };
-    metadataPlayer.addEventListener('loadedmetadata', onMetadata);
-    metadataPlayer.load();
+
+    loadDuration().catch(() => {});
     return () => {
-      metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
-      metadataPlayer.src = '';
+      cancelled = true;
     };
-  }, [sound.path, trimEnd, trimStart]);
+  }, [sound.path, updateKnownDuration]);
 
   useEffect(
     () => () => {

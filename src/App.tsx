@@ -8,6 +8,7 @@ import SoundsView from './application/view/SoundsView';
 import SettingsView from './application/view/SettingsView';
 import TopBarComponent from './application/component/TopBarComponent';
 import RecentlyRemovedHistory from './application/component/RecentlyRemovedHistory';
+import RangeValueTooltip from './application/component/RangeValueTooltip';
 import soundboardDomain from './domain/SoundboardDomain';
 import Player from './domain/entities/Player';
 import logo from '../assets/logo.svg';
@@ -17,6 +18,7 @@ import {
   HotkeyMap,
 } from './domain/entities/HotkeyPreferences';
 import {
+  AudioOutput,
   HotkeyBinding,
   HotkeySettings,
 } from './domain/entities/UserPreferences';
@@ -32,17 +34,17 @@ type HotkeyHandler = {
   errorMessage: string;
 };
 
-const applyAdditionalAudioOutputs = (
-  outputs: Array<{ id: string }> | undefined
-) => {
+const applyAudioOutputs = (audioOutput: AudioOutput) => {
+  const additionalOutputs = audioOutput.additionalOutputs || [];
   Player.setGlobalAdditionalAudioOutputDeviceIds(
-    (outputs || []).map((output) => output.id)
+    additionalOutputs.map((output) => output.id)
   );
+  Player.setGlobalAudioOutputVolumes([audioOutput, ...additionalOutputs]);
 };
 
 export default function App() {
   const initialPreferences = soundboardDomain.getUserPreferences();
-  applyAdditionalAudioOutputs(initialPreferences.audioOutput.additionalOutputs);
+  applyAudioOutputs(initialPreferences.audioOutput);
   const stopAllSoundsRef = useRef<Array<() => void>>([]);
   const [filters, setFilters] = useState(new Filters(''));
   const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
@@ -54,6 +56,7 @@ export default function App() {
   );
   const [shortcutRegistrationRevision, setShortcutRegistrationRevision] =
     useState(0);
+  const [soundListRevision, setSoundListRevision] = useState(0);
   const filtersRef = useRef(filters);
   const previousBindingsRef = useRef(initialPreferences.bindings);
 
@@ -101,6 +104,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const onRecordingSaved = () =>
+      setSoundListRevision((current) => current + 1);
+    window.addEventListener('soundboard:recording-saved', onRecordingSaved);
+    return () =>
+      window.removeEventListener(
+        'soundboard:recording-saved',
+        onRecordingSaved
+      );
+  }, []);
+
+  useEffect(() => {
     const unregisterPreferenceWatcher = soundboardDomain.watchUserPreferences(
       (userPreferences) => {
         const nextBindingIds = new Set(
@@ -118,9 +132,7 @@ export default function App() {
           .forEach((binding) => removeRecentlyRemovedSound(binding.sound.id));
         previousBindingsRef.current = userPreferences.bindings;
 
-        applyAdditionalAudioOutputs(
-          userPreferences.audioOutput.additionalOutputs
-        );
+        applyAudioOutputs(userPreferences.audioOutput);
         setHotkeys(userPreferences.hotkeys);
         setBindings(userPreferences.bindings);
         setHotkeySettings(userPreferences.hotkeySettings);
@@ -251,6 +263,7 @@ export default function App() {
   return (
     <Router>
       <div className="app-view">
+        <RangeValueTooltip />
         <TopBarComponent />
         <div className="menu">
           <span className="title">
@@ -275,6 +288,7 @@ export default function App() {
               element={
                 <>
                   <SoundsView
+                    key={soundListRevision}
                     stopAllSounds={stopAllSoundsRef.current}
                     registerSound={registerSound}
                     setGlobalFilters={setFilters}

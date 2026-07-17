@@ -1,5 +1,6 @@
 /* eslint global-require: off, no-console: off */
 
+import fs from 'fs';
 import path from 'path';
 import {
   app,
@@ -24,6 +25,12 @@ type UiohookModule = {
   UiohookKey: Record<string, number>;
 };
 
+type RecordingSavePayload = {
+  data: ArrayBuffer | Uint8Array;
+  directory?: string;
+  extension?: string;
+};
+
 const initializeAppUpdater = () => {
   log.transports.file.level = 'info';
   autoUpdater.logger = log;
@@ -33,6 +40,14 @@ const initializeAppUpdater = () => {
 let mainWindow: BrowserWindow | null = null;
 let shortcutManager: PassiveShortcutManager | null = null;
 let tray: Tray | null = null;
+
+const getDefaultRecordingPath = () =>
+  path.join(app.getPath('userData'), 'Recordings');
+
+const ensureDirectory = (directory: string) => {
+  fs.mkdirSync(directory, { recursive: true });
+  return directory;
+};
 
 const initializePassiveShortcuts = () => {
   if (shortcutManager) {
@@ -132,6 +147,10 @@ const createWindow = async () => {
     event.returnValue = app.getPath(pathName);
   });
 
+  ipcMain.on('recording:get-default-path', (event) => {
+    event.returnValue = ensureDirectory(getDefaultRecordingPath());
+  });
+
   ipcMain.on('shortcut:register', (event, accelerator: string) => {
     event.returnValue = shortcutManager?.register(accelerator) ?? false;
   });
@@ -166,6 +185,50 @@ const createWindow = async () => {
         filters: [{ name: 'JSON files', extensions: ['json'] }],
       });
       return result.canceled ? '' : result.filePaths[0] || '';
+    }
+  );
+
+  ipcMain.handle(
+    'dialog:choose-recording-folder',
+    async (_event, currentPath?: string) => {
+      const window = mainWindow;
+      if (!window) {
+        return '';
+      }
+      const result = await dialog.showOpenDialog(window, {
+        defaultPath: currentPath || getDefaultRecordingPath(),
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      return result.canceled ? '' : result.filePaths[0] || '';
+    }
+  );
+
+  ipcMain.handle(
+    'recording:open-folder',
+    async (_event, recordingPath?: string) =>
+      shell.openPath(
+        ensureDirectory(recordingPath || getDefaultRecordingPath())
+      )
+  );
+
+  ipcMain.handle(
+    'recording:save',
+    async (_event, payload: RecordingSavePayload) => {
+      const directory = ensureDirectory(
+        payload.directory || getDefaultRecordingPath()
+      );
+      const extension = payload.extension === 'ogg' ? 'ogg' : 'webm';
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filePath = path.join(
+        directory,
+        `recording-${timestamp}.${extension}`
+      );
+      const recordingData =
+        payload.data instanceof ArrayBuffer
+          ? new Uint8Array(payload.data)
+          : payload.data;
+      fs.writeFileSync(filePath, Buffer.from(recordingData));
+      return filePath;
     }
   );
 
@@ -246,11 +309,15 @@ app.on('will-quit', () => {
   ipcMain.removeAllListeners('window:toggle-maximize');
   ipcMain.removeAllListeners('window:hide');
   ipcMain.removeAllListeners('app:getPath');
+  ipcMain.removeAllListeners('recording:get-default-path');
   ipcMain.removeAllListeners('shortcut:register');
   ipcMain.removeAllListeners('shortcut:unregister');
   ipcMain.removeAllListeners('shortcut:suspend');
   ipcMain.removeAllListeners('shortcut:resume');
   ipcMain.removeHandler('dialog:choose-sounds-json');
+  ipcMain.removeHandler('dialog:choose-recording-folder');
+  ipcMain.removeHandler('recording:open-folder');
+  ipcMain.removeHandler('recording:save');
 });
 
 app

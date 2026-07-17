@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import Filters from '../../domain/entities/Filters';
-import MasterVolumeControl from './MasterVolumeControl';
+import CompactAudioControls from './CompactAudioControls';
 
 const FilterComponent = ({
   sendFiltersToParent,
@@ -61,7 +61,7 @@ const FilterComponent = ({
           <FaTimes />
         </button>
       )}
-      <MasterVolumeControl />
+      <CompactAudioControls />
     </div>
   );
 };

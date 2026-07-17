@@ -8,7 +8,10 @@
 }
 
 .filters-component .input-search {
+  width: min(280px, 27vw);
+  min-width: 150px;
   height: 30px;
+  box-sizing: border-box;
   font-size: 17px;
   background-color: #3a3a3a;
   border: 1px solid white;
@@ -31,8 +34,58 @@
   cursor: pointer;
 }
 
+.filters-component .compact-audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.filters-component .compact-device-select {
+  width: 120px;
+  height: 32px;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1px solid #e0e0e0;
+  background: #2d2d2d;
+  color: #e0e0e0;
+  text-overflow: ellipsis;
+}
+
+.filters-component .compact-gain-control {
+  width: 70px;
+  margin: 0;
+}
+
 .filters-component .master-volume-control {
-  order: 2;
-  width: 90px;
+  width: 78px;
+  margin: 0;
+}
+
+.filters-component .recording-control {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 9px;
+  border: 2px solid #c60000;
+  border-radius: 18px;
+  background: transparent;
+  color: #c60000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.filters-component .recording-control.recording {
+  background: rgba(198, 0, 0, 0.16);
+}
+
+.filters-component .recording-control span {
+  font-size: 12px;
+}
+
+.sounds-view .actions .button-stop-all {
   margin-left: 8px;
 }
