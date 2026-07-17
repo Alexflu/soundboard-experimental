@@ -34,7 +34,7 @@ const normalize = (
   settings?: Partial<RecordingSettings> | null
 ): RecordingSettings => {
   const hasCurrentTimeout =
-    settings?.version === SETTINGS_VERSION &&
+    (settings?.version || 0) >= 2 &&
     typeof settings.timeoutSeconds === 'number' &&
     Number.isFinite(settings.timeoutSeconds);
 
