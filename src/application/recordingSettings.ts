@@ -68,8 +68,6 @@ export const saveRecordingSettings = (
 ): RecordingSettings => {
   const next = normalize({ ...getRecordingSettings(), ...settings });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  window.dispatchEvent(
-    new Event('soundboard:recording-settings-changed')
-  );
+  window.dispatchEvent(new Event('soundboard:recording-settings-changed'));
   return next;
 };
