@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   AudioOutput,
-  UserPreferences
+  UserPreferences,
 } from '../../domain/entities/UserPreferences';
 import soundboardDomain from '../../domain/SoundboardDomain';
 import {
   getRecordingSettings,
-  saveRecordingSettings
+  saveRecordingSettings,
 } from '../recordingSettings';
 import MasterVolumeControl from './MasterVolumeControl';
 import RecordingControl from './RecordingControl';
@@ -81,7 +81,7 @@ const CompactAudioControls = () => {
           nextAudioOutput.id,
           ...(nextAudioOutput.additionalOutputs || []).map(
             (output) => output.id
-          )
+          ),
         ]);
         setAudioOutput(nextAudioOutput);
         setSelectedOutputId((current) =>
@@ -101,7 +101,7 @@ const CompactAudioControls = () => {
         inputDeviceId: deviceId,
         inputDeviceName: selected
           ? formatDeviceLabel(selected, 'Default input')
-          : 'Default input'
+          : 'Default input',
       })
     );
   };
@@ -115,7 +115,7 @@ const CompactAudioControls = () => {
     const currentOutput = preferences.audioOutput;
     const activeOutputs = [
       currentOutput,
-      ...(currentOutput.additionalOutputs || [])
+      ...(currentOutput.additionalOutputs || []),
     ];
     if (activeOutputs.some((output) => output.id === deviceId)) {
       setSelectedOutputId(deviceId);
