@@ -26,7 +26,9 @@ const RoutingSettings = () => {
         );
         return true;
       })
-      .catch((error) => toast.error(`Cannot enumerate audio outputs: ${error}`));
+      .catch((error) =>
+        toast.error(`Cannot enumerate audio outputs: ${error}`)
+      );
   }, []);
 
   useEffect(() => {
