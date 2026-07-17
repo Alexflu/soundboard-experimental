@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Player from '../../domain/entities/Player';
 import {
   AudioOutput,
-  UserPreferences,
+  UserPreferences
 } from '../../domain/entities/UserPreferences';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
@@ -11,7 +11,9 @@ const findOutput = (preferences: UserPreferences, outputId: string) => {
   if (audioOutput.id === outputId) {
     return audioOutput;
   }
-  return audioOutput.additionalOutputs.find((output) => output.id === outputId);
+  return (audioOutput.additionalOutputs || []).find(
+    (output) => output.id === outputId
+  );
 };
 
 const MasterVolumeControl = ({ outputId }: { outputId: string }) => {
@@ -37,28 +39,27 @@ const MasterVolumeControl = ({ outputId }: { outputId: string }) => {
     Player.setGlobalAudioOutputVolume(outputId, nextVolume);
     const preferences = soundboardDomain.getUserPreferences();
     const currentOutput = preferences.audioOutput;
+    const additionalOutputs = currentOutput.additionalOutputs || [];
     const nextOutput =
       currentOutput.id === outputId
         ? new AudioOutput(
             currentOutput.id,
             currentOutput.name,
             nextVolume,
-            currentOutput.additionalOutputs
+            additionalOutputs
           )
         : new AudioOutput(
             currentOutput.id,
             currentOutput.name,
             currentOutput.volume,
-            currentOutput.additionalOutputs.map((output) =>
+            additionalOutputs.map((output) =>
               output.id === outputId
                 ? new AudioOutput(output.id, output.name, nextVolume)
                 : output
             )
           );
 
-    soundboardDomain.setUserPreferences(
-      preferences.setAudioOutput(nextOutput)
-    );
+    soundboardDomain.setUserPreferences(preferences.setAudioOutput(nextOutput));
   };
 
   return (
