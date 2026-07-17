@@ -6,36 +6,58 @@ import {
 } from '../../domain/entities/UserPreferences';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
-const MasterVolumeControl = () => {
-  const initialVolume =
-    soundboardDomain.getUserPreferences().audioOutput.volume ?? 1;
-  const [volume, setVolume] = useState(initialVolume);
+const findOutput = (preferences: UserPreferences, outputId: string) => {
+  const { audioOutput } = preferences;
+  if (audioOutput.id === outputId) {
+    return audioOutput;
+  }
+  return audioOutput.additionalOutputs.find((output) => output.id === outputId);
+};
+
+const MasterVolumeControl = ({ outputId }: { outputId: string }) => {
+  const initialPreferences = soundboardDomain.getUserPreferences();
+  const [volume, setVolume] = useState(
+    findOutput(initialPreferences, outputId)?.volume ?? 1
+  );
 
   useEffect(() => {
-    Player.setGlobalMasterVolume(initialVolume);
-    const unregister = soundboardDomain.watchUserPreferences(
-      (preferences: UserPreferences) => {
-        const updatedVolume = preferences.audioOutput.volume ?? 1;
-        setVolume(updatedVolume);
-        Player.setGlobalMasterVolume(updatedVolume);
-      }
-    );
+    const syncVolume = (preferences: UserPreferences) => {
+      const nextVolume = findOutput(preferences, outputId)?.volume ?? 1;
+      setVolume(nextVolume);
+      Player.setGlobalAudioOutputVolume(outputId, nextVolume);
+    };
+
+    syncVolume(soundboardDomain.getUserPreferences());
+    const unregister = soundboardDomain.watchUserPreferences(syncVolume);
     return () => unregister();
-  }, [initialVolume]);
+  }, [outputId]);
 
   const updateVolume = (nextVolume: number) => {
     setVolume(nextVolume);
-    Player.setGlobalMasterVolume(nextVolume);
+    Player.setGlobalAudioOutputVolume(outputId, nextVolume);
     const preferences = soundboardDomain.getUserPreferences();
+    const currentOutput = preferences.audioOutput;
+    const nextOutput =
+      currentOutput.id === outputId
+        ? new AudioOutput(
+            currentOutput.id,
+            currentOutput.name,
+            nextVolume,
+            currentOutput.additionalOutputs
+          )
+        : new AudioOutput(
+            currentOutput.id,
+            currentOutput.name,
+            currentOutput.volume,
+            currentOutput.additionalOutputs.map((output) =>
+              output.id === outputId
+                ? new AudioOutput(output.id, output.name, nextVolume)
+                : output
+            )
+          );
+
     soundboardDomain.setUserPreferences(
-      preferences.setAudioOutput(
-        new AudioOutput(
-          preferences.audioOutput.id,
-          preferences.audioOutput.name,
-          nextVolume,
-          preferences.audioOutput.additionalOutputs || []
-        )
-      )
+      preferences.setAudioOutput(nextOutput)
     );
   };
 
@@ -48,8 +70,8 @@ const MasterVolumeControl = () => {
       step={0.05}
       value={volume}
       onChange={(event) => updateVolume(Number(event.target.value))}
-      title={`Master volume ${Math.round(volume * 100)}%`}
-      aria-label="Master volume"
+      title={`Output volume ${Math.round(volume * 100)}%`}
+      aria-label="Selected output volume"
     />
   );
 };
