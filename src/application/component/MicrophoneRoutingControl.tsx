@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
-import {
-  getRoutingSettings,
-  saveRoutingSettings,
-} from '../routingSettings';
+import { getRoutingSettings, saveRoutingSettings } from '../routingSettings';
 
 const MicrophoneRoutingControl = () => {
   const [settings, setSettings] = useState(getRoutingSettings);
