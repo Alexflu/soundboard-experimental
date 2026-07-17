@@ -119,7 +119,7 @@ const RecordingSettings = () => {
           id="recording-input-gain"
           type="range"
           min={0}
-          max={2}
+          max={1}
           step={0.05}
           value={settings.gain}
           onChange={(event) =>
