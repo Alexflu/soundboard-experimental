@@ -10,6 +10,7 @@ import {
   saveRecordingSettings,
 } from '../recordingSettings';
 import MasterVolumeControl from './MasterVolumeControl';
+import MicrophoneRoutingControl from './MicrophoneRoutingControl';
 import RecordingControl from './RecordingControl';
 
 const formatDeviceLabel = (device: MediaDeviceInfo, fallback: string) =>
@@ -187,6 +188,7 @@ const CompactAudioControls = () => {
         title={`Recording gain ${Math.round(recordingSettings.gain * 100)}%`}
         aria-label="Recording gain"
       />
+      <MicrophoneRoutingControl />
       <RecordingControl />
       <select
         className="compact-device-select"
