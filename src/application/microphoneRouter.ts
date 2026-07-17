@@ -113,7 +113,7 @@ class MicrophoneRouter {
   }
 
   private async setOutputDevice(deviceId: string) {
-    const audioElement = this.audioElement;
+    const { audioElement } = this;
     if (!audioElement) {
       return;
     }
