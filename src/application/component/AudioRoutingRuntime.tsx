@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import microphoneRouter from '../microphoneRouter';
 import { getRecordingSettings } from '../recordingSettings';
