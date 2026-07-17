@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FaGlobeAmericas, FaHdd, FaPlay, FaStop } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import Sound from '../../domain/entities/Sound';
@@ -69,26 +69,32 @@ const SoundComponent = ({
   const playbackDuration =
     playbackEnd === null ? null : Math.max(0, playbackEnd - playbackStart);
 
-  const updateKnownDuration = (totalDuration: number) => {
-    if (!Number.isFinite(totalDuration) || totalDuration <= 0) {
-      return null;
-    }
+  const updateKnownDuration = useCallback(
+    (totalDuration: number) => {
+      if (!Number.isFinite(totalDuration) || totalDuration <= 0) {
+        return null;
+      }
 
-    setDuration(totalDuration);
-    const startTime = Math.min(trimStart, totalDuration);
-    const endTime = Math.max(
-      startTime,
-      Math.min(trimEnd ?? totalDuration, totalDuration)
-    );
-    const selectedDuration = Math.max(0, endTime - startTime);
-    setRemainingTime(selectedDuration);
-    return selectedDuration;
-  };
+      setDuration(totalDuration);
+      const startTime = Math.min(trimStart, totalDuration);
+      const endTime = Math.max(
+        startTime,
+        Math.min(trimEnd ?? totalDuration, totalDuration)
+      );
+      const selectedDuration = Math.max(0, endTime - startTime);
+      setRemainingTime(selectedDuration);
+      return selectedDuration;
+    },
+    [trimEnd, trimStart]
+  );
 
   const resetPlaybackDisplay = (totalDuration?: number) => {
     setIsPlaying(false);
     setProgress(0);
-    if (totalDuration === undefined || updateKnownDuration(totalDuration) === null) {
+    if (
+      totalDuration === undefined ||
+      updateKnownDuration(totalDuration) === null
+    ) {
       setRemainingTime(playbackDuration);
     }
   };
@@ -268,7 +274,7 @@ const SoundComponent = ({
       metadataPlayer.removeEventListener('durationchange', onMetadata);
       metadataPlayer.src = '';
     };
-  }, [sound.path, trimEnd, trimStart]);
+  }, [sound.path, updateKnownDuration]);
 
   useEffect(
     () => () => {
