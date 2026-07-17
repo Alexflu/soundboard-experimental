@@ -2,10 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import microphoneRouter from '../microphoneRouter';
 import { getRecordingSettings } from '../recordingSettings';
-import {
-  getRoutingSettings,
-  saveRoutingSettings,
-} from '../routingSettings';
+import { getRoutingSettings, saveRoutingSettings } from '../routingSettings';
 
 const AudioRoutingRuntime = () => {
   const applyRouting = useCallback(() => {
