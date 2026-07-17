@@ -5,9 +5,18 @@ type AudioWithSinkId = HTMLAudioElement & {
   setSinkId?: (sinkId: string) => Promise<void>;
 };
 
+type AudioWithCaptureStream = HTMLAudioElement & {
+  captureStream?: () => MediaStream;
+};
+
 type AudioOutputVolume = {
   id: string;
   volume: number;
+};
+
+type OutputLevelDetail = {
+  deviceId: string;
+  level: number;
 };
 
 const normalizeVolume = (volume: number) =>
@@ -15,6 +24,11 @@ const normalizeVolume = (volume: number) =>
 
 class Player {
   private static readonly activePlayers = new Set<Player>();
+
+  private static readonly outputLevels = new Map<
+    string,
+    Map<Player, number>
+  >();
 
   private static globalMasterVolume = 1;
 
@@ -33,6 +47,8 @@ class Player {
   masterVolume: number;
 
   private mirrorPlayers: HTMLAudioElement[];
+
+  private meterCleanups: Array<() => void>;
 
   private cleanupPlayback?: () => void;
 
@@ -57,6 +73,7 @@ class Player {
     this.masterVolume = normalizeVolume(masterVolume);
     this.player = undefined;
     this.mirrorPlayers = [];
+    this.meterCleanups = [];
   }
 
   static setGlobalMasterVolume(volume: number) {
@@ -88,6 +105,40 @@ class Player {
     }
     Player.globalAudioOutputVolumes.set(deviceId, normalizeVolume(volume));
     Player.activePlayers.forEach((player) => player.applyVolume());
+  }
+
+  private static updateOutputLevel(
+    player: Player,
+    deviceId: string,
+    level: number
+  ) {
+    const normalizedLevel = Math.min(1, Math.max(0, level));
+    const levels = Player.outputLevels.get(deviceId) || new Map<Player, number>();
+
+    if (normalizedLevel > 0) {
+      levels.set(player, normalizedLevel);
+      Player.outputLevels.set(deviceId, levels);
+    } else {
+      levels.delete(player);
+      if (levels.size === 0) {
+        Player.outputLevels.delete(deviceId);
+      }
+    }
+
+    const combinedLevel = Math.min(
+      1,
+      Math.sqrt(
+        Array.from(levels.values()).reduce(
+          (total, current) => total + current * current,
+          0
+        )
+      )
+    );
+    window.dispatchEvent(
+      new CustomEvent<OutputLevelDetail>('soundboard:output-level', {
+        detail: { deviceId, level: combinedLevel },
+      })
+    );
   }
 
   isPlaying(): boolean {
@@ -176,6 +227,7 @@ class Player {
     const finishPlayback = () => {
       audioPlayer.removeEventListener('timeupdate', onTrimEnd);
       mirrorPlayers.forEach((currentPlayer) => currentPlayer.pause());
+      this.stopOutputMeters();
       Player.activePlayers.delete(this);
       if (this.player === audioPlayer) {
         this.cleanupPlayback = undefined;
@@ -186,6 +238,7 @@ class Player {
       audioPlayer.removeEventListener('timeupdate', onTrimEnd);
       audioPlayer.removeEventListener('ended', finishPlayback);
       mirrorPlayers.forEach((currentPlayer) => currentPlayer.pause());
+      this.stopOutputMeters();
       Player.activePlayers.delete(this);
     };
 
@@ -205,6 +258,7 @@ class Player {
             }
           }
         });
+        this.startOutputMeters(audioPlayers, outputDeviceIds);
         return true;
       })
       .catch((e) => {
@@ -233,6 +287,66 @@ class Player {
 
   private getAudioPlayers(): HTMLAudioElement[] {
     return this.player ? [this.player, ...this.mirrorPlayers] : [];
+  }
+
+  private startOutputMeters(
+    audioPlayers: HTMLAudioElement[],
+    deviceIds: string[]
+  ) {
+    this.stopOutputMeters();
+    this.meterCleanups = audioPlayers.map((audioPlayer, index) =>
+      this.createOutputMeter(audioPlayer, deviceIds[index])
+    );
+  }
+
+  private createOutputMeter(
+    audioPlayer: HTMLAudioElement,
+    deviceId: string
+  ): () => void {
+    const playerWithCapture = audioPlayer as AudioWithCaptureStream;
+    if (typeof playerWithCapture.captureStream !== 'function') {
+      Player.updateOutputLevel(this, deviceId, audioPlayer.volume);
+      return () => Player.updateOutputLevel(this, deviceId, 0);
+    }
+
+    try {
+      const stream = playerWithCapture.captureStream();
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      const samples = new Uint8Array(256);
+      analyser.fftSize = samples.length;
+      analyser.smoothingTimeConstant = 0.75;
+      source.connect(analyser);
+      audioContext.resume().catch(() => {});
+
+      const interval = setInterval(() => {
+        analyser.getByteTimeDomainData(samples);
+        const sum = samples.reduce((total, sample) => {
+          const normalized = (sample - 128) / 128;
+          return total + normalized * normalized;
+        }, 0);
+        const level =
+          Math.min(1, Math.sqrt(sum / samples.length) * 4) *
+          audioPlayer.volume;
+        Player.updateOutputLevel(this, deviceId, level);
+      }, 50);
+
+      return () => {
+        clearInterval(interval);
+        source.disconnect();
+        audioContext.close().catch(() => {});
+        Player.updateOutputLevel(this, deviceId, 0);
+      };
+    } catch {
+      Player.updateOutputLevel(this, deviceId, audioPlayer.volume);
+      return () => Player.updateOutputLevel(this, deviceId, 0);
+    }
+  }
+
+  private stopOutputMeters() {
+    this.meterCleanups.forEach((cleanup) => cleanup());
+    this.meterCleanups = [];
   }
 
   private static async setOutputDevice(
@@ -282,6 +396,7 @@ class Player {
     });
     this.cleanupPlayback?.();
     this.cleanupPlayback = undefined;
+    this.stopOutputMeters();
     Player.activePlayers.delete(this);
     delete this.player;
     this.mirrorPlayers = [];
