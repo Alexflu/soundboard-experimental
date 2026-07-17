@@ -11,11 +11,32 @@ const getMimeType = () =>
     (type) => MediaRecorder.isTypeSupported(type)
   ) || '';
 
+const getMicrophoneStream = (inputDeviceId: string) =>
+  navigator.mediaDevices.getUserMedia({
+    audio:
+      inputDeviceId === 'default'
+        ? true
+        : { deviceId: { exact: inputDeviceId } },
+  });
+
+const getSystemAudioStream = async () => {
+  const displayStream = await navigator.mediaDevices.getDisplayMedia({
+    audio: true,
+    video: true,
+  });
+  displayStream.getVideoTracks().forEach((track) => track.stop());
+  if (displayStream.getAudioTracks().length === 0) {
+    displayStream.getTracks().forEach((track) => track.stop());
+    throw new Error('System audio capture is unavailable');
+  }
+  return displayStream;
+};
+
 const RecordingControl = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const streamsRef = useRef<MediaStream[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -33,8 +54,10 @@ const RecordingControl = () => {
 
   const cleanup = useCallback(() => {
     clearTimers();
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    streamsRef.current.forEach((stream) =>
+      stream.getTracks().forEach((track) => track.stop())
+    );
+    streamsRef.current = [];
     audioContextRef.current?.close().catch(() => {});
     audioContextRef.current = null;
     recorderRef.current = null;
@@ -54,25 +77,32 @@ const RecordingControl = () => {
     const chunks: Blob[] = [];
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio:
-          settings.inputDeviceId === 'default'
-            ? true
-            : { deviceId: { exact: settings.inputDeviceId } },
-      });
+      const streams: Array<{ stream: MediaStream; gain: number }> = [];
+      if (settings.source !== 'system') {
+        streams.push({
+          stream: await getMicrophoneStream(settings.inputDeviceId),
+          gain: settings.gain,
+        });
+      }
+      if (settings.source !== 'microphone') {
+        streams.push({ stream: await getSystemAudioStream(), gain: 1 });
+      }
+
       const audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const gain = audioContext.createGain();
       const destination = audioContext.createMediaStreamDestination();
-      gain.gain.value = settings.gain;
-      source.connect(gain).connect(destination);
+      streams.forEach(({ stream, gain: streamGain }) => {
+        const source = audioContext.createMediaStreamSource(stream);
+        const gain = audioContext.createGain();
+        gain.gain.value = streamGain;
+        source.connect(gain).connect(destination);
+      });
 
       const mimeType = getMimeType();
       const recorder = mimeType
         ? new MediaRecorder(destination.stream, { mimeType })
         : new MediaRecorder(destination.stream);
 
-      streamRef.current = stream;
+      streamsRef.current = streams.map(({ stream }) => stream);
       audioContextRef.current = audioContext;
       recorderRef.current = recorder;
       recorder.addEventListener('dataavailable', (event) => {
@@ -113,6 +143,7 @@ const RecordingControl = () => {
         { once: true }
       );
 
+      await audioContext.resume();
       recorder.start(250);
       setIsRecording(true);
       setElapsedSeconds(0);
