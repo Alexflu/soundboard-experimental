@@ -211,6 +211,7 @@ export class SoundboardDomain {
   }
 
   setBindingVolume(key: string, soundId: string, volume: number) {
+    Player.setBindingSoundVolume(soundId, volume);
     this.setUserPreferences(
       this.getUserPreferences().setBindingVolume(key, soundId, volume)
     );
@@ -266,7 +267,8 @@ export class SoundboardDomain {
         binding.sound.volume,
         trim?.startTime,
         trim?.endTime
-      )
+      ),
+      binding.sound.id
     );
     this.boundPlaybackListeners.forEach((listener) =>
       listener({
@@ -278,11 +280,12 @@ export class SoundboardDomain {
     return player;
   }
 
-  private playSound(sound: Sound): Player {
+  private playSound(sound: Sound, bindingSoundId?: string): Player {
     const { audioOutput } = this.getUserPreferences();
     const masterVolume = audioOutput.volume ?? 1;
     Player.setGlobalMasterVolume(masterVolume);
     const player = new Player(sound, audioOutput.id, masterVolume);
+    player.bindingSoundId = bindingSoundId;
     player.play();
     return player;
   }

@@ -1,5 +1,7 @@
 const { ipcRenderer } = require('electron');
 
+export type RecordingSource = 'microphone' | 'system' | 'mixed';
+
 export type RecordingSettings = {
   version: number;
   directory: string;
@@ -7,10 +9,11 @@ export type RecordingSettings = {
   inputDeviceName: string;
   gain: number;
   timeoutSeconds: number;
+  source: RecordingSource;
 };
 
 const STORAGE_KEY = 'soundboard:recording-settings';
-const SETTINGS_VERSION = 2;
+const SETTINGS_VERSION = 3;
 
 const getDefaultDirectory = () => {
   try {
@@ -20,13 +23,21 @@ const getDefaultDirectory = () => {
   }
 };
 
+const normalizeSource = (source?: string): RecordingSource => {
+  if (source === 'system' || source === 'mixed') {
+    return source;
+  }
+  return 'microphone';
+};
+
 const normalize = (
   settings?: Partial<RecordingSettings> | null
 ): RecordingSettings => {
+  const timeoutSeconds = settings?.timeoutSeconds;
   const hasCurrentTimeout =
-    settings?.version === SETTINGS_VERSION &&
-    typeof settings.timeoutSeconds === 'number' &&
-    Number.isFinite(settings.timeoutSeconds);
+    (settings?.version || 0) >= 2 &&
+    typeof timeoutSeconds === 'number' &&
+    Number.isFinite(timeoutSeconds);
 
   return {
     version: SETTINGS_VERSION,
@@ -38,8 +49,9 @@ const normalize = (
         ? Math.min(1, Math.max(0, settings.gain))
         : 1,
     timeoutSeconds: hasCurrentTimeout
-      ? Math.min(3600, Math.max(0, Math.round(settings.timeoutSeconds || 0)))
+      ? Math.min(3600, Math.max(0, Math.round(timeoutSeconds)))
       : 0,
+    source: normalizeSource(settings?.source),
   };
 };
 

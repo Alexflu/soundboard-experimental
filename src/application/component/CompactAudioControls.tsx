@@ -10,7 +10,13 @@ import {
   saveRecordingSettings,
 } from '../recordingSettings';
 import MasterVolumeControl from './MasterVolumeControl';
+import MicrophoneRoutingControl from './MicrophoneRoutingControl';
 import RecordingControl from './RecordingControl';
+
+type OutputLevelDetail = {
+  deviceId: string;
+  level: number;
+};
 
 const formatDeviceLabel = (device: MediaDeviceInfo, fallback: string) =>
   device.label?.trim() || fallback;
@@ -27,6 +33,8 @@ const CompactAudioControls = () => {
   );
   const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [outputDevices, setOutputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [inputLevel, setInputLevel] = useState(0);
+  const [outputLevel, setOutputLevel] = useState(0);
 
   const refreshDevices = useCallback(() => {
     if (!navigator.mediaDevices) {
@@ -72,6 +80,32 @@ const CompactAudioControls = () => {
         syncRecordingSettings
       );
   }, []);
+
+  useEffect(() => {
+    const onRecordingLevel = (event: Event) => {
+      const { detail } = event as CustomEvent<number>;
+      setInputLevel(Math.min(1, Math.max(0, detail || 0)));
+    };
+    window.addEventListener('soundboard:recording-level', onRecordingLevel);
+    return () =>
+      window.removeEventListener(
+        'soundboard:recording-level',
+        onRecordingLevel
+      );
+  }, []);
+
+  useEffect(() => {
+    setOutputLevel(0);
+    const onOutputLevel = (event: Event) => {
+      const { detail } = event as CustomEvent<OutputLevelDetail>;
+      if (detail.deviceId === selectedOutputId) {
+        setOutputLevel(Math.min(1, Math.max(0, detail.level || 0)));
+      }
+    };
+    window.addEventListener('soundboard:output-level', onOutputLevel);
+    return () =>
+      window.removeEventListener('soundboard:output-level', onOutputLevel);
+  }, [selectedOutputId]);
 
   useEffect(() => {
     const unregister = soundboardDomain.watchUserPreferences(
@@ -176,17 +210,23 @@ const CompactAudioControls = () => {
           </option>
         ))}
       </select>
-      <input
-        className="compact-gain-control"
-        type="range"
-        min={0}
-        max={1}
-        step={0.05}
-        value={recordingSettings.gain}
-        onChange={(event) => updateGain(Number(event.target.value))}
-        title={`Recording gain ${Math.round(recordingSettings.gain * 100)}%`}
-        aria-label="Recording gain"
-      />
+      <div className="compact-level-column compact-input-level">
+        <input
+          className="compact-gain-control"
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={recordingSettings.gain}
+          onChange={(event) => updateGain(Number(event.target.value))}
+          title={`Recording gain ${Math.round(recordingSettings.gain * 100)}%`}
+          aria-label="Recording gain"
+        />
+        <div className="compact-level-meter" title="Captured input level">
+          <span style={{ transform: `scaleX(${inputLevel})` }} />
+        </div>
+      </div>
+      <MicrophoneRoutingControl />
       <RecordingControl />
       <select
         className="compact-device-select"
@@ -212,7 +252,12 @@ const CompactAudioControls = () => {
           );
         })}
       </select>
-      <MasterVolumeControl outputId={selectedOutput.id} />
+      <div className="compact-level-column compact-output-level">
+        <MasterVolumeControl outputId={selectedOutput.id} />
+        <div className="compact-level-meter" title="Selected output level">
+          <span style={{ transform: `scaleX(${outputLevel})` }} />
+        </div>
+      </div>
     </div>
   );
 };

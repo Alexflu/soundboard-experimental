@@ -103,6 +103,19 @@ const createWindow = async () => {
     await installExtensions();
   }
 
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    if (!request.frame) {
+      callback({});
+      return;
+    }
+
+    callback(
+      process.platform === 'win32'
+        ? { video: request.frame, audio: 'loopback' }
+        : { video: request.frame }
+    );
+  });
+
   const resourcesPath = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
     : path.join(__dirname, '../assets');
@@ -301,6 +314,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+  session.defaultSession.setDisplayMediaRequestHandler(null);
   shortcutManager?.stop();
   shortcutManager = null;
   tray?.destroy();

@@ -86,6 +86,22 @@ const RecordingSettings = () => {
   return (
     <section className="recording-settings">
       <span className="recording-settings-title">Recording</span>
+      <label htmlFor="recording-source">
+        <span>Source:</span>
+        <select
+          id="recording-source"
+          value={settings.source}
+          onChange={(event) =>
+            updateSettings({
+              source: event.target.value as RecordingSettingsValue['source'],
+            })
+          }
+        >
+          <option value="microphone">Microphone</option>
+          <option value="system">System audio</option>
+          <option value="mixed">Microphone + system audio</option>
+        </select>
+      </label>
       <label htmlFor="recording-input-device">
         <span>Input:</span>
         <select

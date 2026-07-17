@@ -11,14 +11,41 @@ const getMimeType = () =>
     (type) => MediaRecorder.isTypeSupported(type)
   ) || '';
 
+const getMicrophoneStream = (inputDeviceId: string) =>
+  navigator.mediaDevices.getUserMedia({
+    audio:
+      inputDeviceId === 'default'
+        ? true
+        : { deviceId: { exact: inputDeviceId } },
+  });
+
+const getSystemAudioStream = async () => {
+  const displayStream = await navigator.mediaDevices.getDisplayMedia({
+    audio: true,
+    video: true,
+  });
+  displayStream.getVideoTracks().forEach((track) => track.stop());
+  if (displayStream.getAudioTracks().length === 0) {
+    displayStream.getTracks().forEach((track) => track.stop());
+    throw new Error('System audio capture is unavailable');
+  }
+  return displayStream;
+};
+
+const emitRecordingLevel = (level: number) =>
+  window.dispatchEvent(
+    new CustomEvent<number>('soundboard:recording-level', { detail: level })
+  );
+
 const RecordingControl = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const streamsRef = useRef<MediaStream[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const levelRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
@@ -29,12 +56,19 @@ const RecordingControl = () => {
       clearInterval(elapsedRef.current);
       elapsedRef.current = null;
     }
+    if (levelRef.current) {
+      clearInterval(levelRef.current);
+      levelRef.current = null;
+    }
+    emitRecordingLevel(0);
   }, []);
 
   const cleanup = useCallback(() => {
     clearTimers();
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    streamsRef.current.forEach((stream) =>
+      stream.getTracks().forEach((track) => track.stop())
+    );
+    streamsRef.current = [];
     audioContextRef.current?.close().catch(() => {});
     audioContextRef.current = null;
     recorderRef.current = null;
@@ -54,26 +88,44 @@ const RecordingControl = () => {
     const chunks: Blob[] = [];
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio:
-          settings.inputDeviceId === 'default'
-            ? true
-            : { deviceId: { exact: settings.inputDeviceId } },
-      });
+      const streams: Array<{ stream: MediaStream; gain: number }> = [];
+      const addStream = (stream: MediaStream, gain: number) => {
+        streams.push({ stream, gain });
+        streamsRef.current = streams.map((entry) => entry.stream);
+      };
+
+      if (settings.source !== 'system') {
+        addStream(
+          await getMicrophoneStream(settings.inputDeviceId),
+          settings.gain
+        );
+      }
+      if (settings.source !== 'microphone') {
+        addStream(await getSystemAudioStream(), 1);
+      }
+
       const audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const gain = audioContext.createGain();
+      audioContextRef.current = audioContext;
       const destination = audioContext.createMediaStreamDestination();
-      gain.gain.value = settings.gain;
-      source.connect(gain).connect(destination);
+      const mix = audioContext.createGain();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.75;
+
+      streams.forEach(({ stream, gain: streamGain }) => {
+        const source = audioContext.createMediaStreamSource(stream);
+        const gain = audioContext.createGain();
+        gain.gain.value = streamGain;
+        source.connect(gain).connect(mix);
+      });
+      mix.connect(destination);
+      mix.connect(analyser);
 
       const mimeType = getMimeType();
       const recorder = mimeType
         ? new MediaRecorder(destination.stream, { mimeType })
         : new MediaRecorder(destination.stream);
 
-      streamRef.current = stream;
-      audioContextRef.current = audioContext;
       recorderRef.current = recorder;
       recorder.addEventListener('dataavailable', (event) => {
         if (event.data.size > 0) {
@@ -113,9 +165,21 @@ const RecordingControl = () => {
         { once: true }
       );
 
+      await audioContext.resume();
       recorder.start(250);
       setIsRecording(true);
       setElapsedSeconds(0);
+
+      const samples = new Uint8Array(analyser.fftSize);
+      levelRef.current = setInterval(() => {
+        analyser.getByteTimeDomainData(samples);
+        const sum = samples.reduce((total, sample) => {
+          const normalized = (sample - 128) / 128;
+          return total + normalized * normalized;
+        }, 0);
+        emitRecordingLevel(Math.min(1, Math.sqrt(sum / samples.length) * 4));
+      }, 50);
+
       elapsedRef.current = setInterval(
         () => setElapsedSeconds((current) => current + 1),
         1000
