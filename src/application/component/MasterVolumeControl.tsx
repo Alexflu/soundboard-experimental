@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Player from '../../domain/entities/Player';
 import {
   AudioOutput,
-  UserPreferences
+  UserPreferences,
 } from '../../domain/entities/UserPreferences';
 import soundboardDomain from '../../domain/SoundboardDomain';
 
