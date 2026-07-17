@@ -1,0 +1,42 @@
+.routing-settings {
+  width: 100%;
+  margin: 14px 0;
+  padding: 12px 0;
+  border-top: 1px solid grey;
+  border-bottom: 1px solid grey;
+}
+
+.routing-settings-title {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.routing-settings label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.routing-settings label > span {
+  width: 150px;
+  flex: 0 0 150px;
+}
+
+.routing-settings select {
+  min-width: 260px;
+  flex: 1;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #e0e0e0;
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
+
+.routing-settings-helper {
+  display: block;
+  color: #afafaf;
+  font-size: 12px;
+}
