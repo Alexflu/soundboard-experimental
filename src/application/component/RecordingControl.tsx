@@ -78,17 +78,23 @@ const RecordingControl = () => {
 
     try {
       const streams: Array<{ stream: MediaStream; gain: number }> = [];
+      const addStream = (stream: MediaStream, gain: number) => {
+        streams.push({ stream, gain });
+        streamsRef.current = streams.map((entry) => entry.stream);
+      };
+
       if (settings.source !== 'system') {
-        streams.push({
-          stream: await getMicrophoneStream(settings.inputDeviceId),
-          gain: settings.gain,
-        });
+        addStream(
+          await getMicrophoneStream(settings.inputDeviceId),
+          settings.gain
+        );
       }
       if (settings.source !== 'microphone') {
-        streams.push({ stream: await getSystemAudioStream(), gain: 1 });
+        addStream(await getSystemAudioStream(), 1);
       }
 
       const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
       const destination = audioContext.createMediaStreamDestination();
       streams.forEach(({ stream, gain: streamGain }) => {
         const source = audioContext.createMediaStreamSource(stream);
@@ -102,8 +108,6 @@ const RecordingControl = () => {
         ? new MediaRecorder(destination.stream, { mimeType })
         : new MediaRecorder(destination.stream);
 
-      streamsRef.current = streams.map(({ stream }) => stream);
-      audioContextRef.current = audioContext;
       recorderRef.current = recorder;
       recorder.addEventListener('dataavailable', (event) => {
         if (event.data.size > 0) {
