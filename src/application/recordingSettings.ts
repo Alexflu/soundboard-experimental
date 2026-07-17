@@ -35,7 +35,7 @@ const normalize = (
     inputDeviceName: settings?.inputDeviceName || 'Default input',
     gain:
       typeof settings?.gain === 'number' && Number.isFinite(settings.gain)
-        ? Math.min(2, Math.max(0, settings.gain))
+        ? Math.min(1, Math.max(0, settings.gain))
         : 1,
     timeoutSeconds: hasCurrentTimeout
       ? Math.min(3600, Math.max(0, Math.round(settings.timeoutSeconds || 0)))
