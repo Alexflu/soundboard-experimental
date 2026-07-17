@@ -69,10 +69,28 @@ const SoundComponent = ({
   const playbackDuration =
     playbackEnd === null ? null : Math.max(0, playbackEnd - playbackStart);
 
-  const resetPlaybackDisplay = () => {
+  const updateKnownDuration = (totalDuration: number) => {
+    if (!Number.isFinite(totalDuration) || totalDuration <= 0) {
+      return null;
+    }
+
+    setDuration(totalDuration);
+    const startTime = Math.min(trimStart, totalDuration);
+    const endTime = Math.max(
+      startTime,
+      Math.min(trimEnd ?? totalDuration, totalDuration)
+    );
+    const selectedDuration = Math.max(0, endTime - startTime);
+    setRemainingTime(selectedDuration);
+    return selectedDuration;
+  };
+
+  const resetPlaybackDisplay = (totalDuration?: number) => {
     setIsPlaying(false);
     setProgress(0);
-    setRemainingTime(playbackDuration);
+    if (totalDuration === undefined || updateKnownDuration(totalDuration) === null) {
+      setRemainingTime(playbackDuration);
+    }
   };
 
   const stop = () => {
@@ -101,6 +119,7 @@ const SoundComponent = ({
         return;
       }
 
+      setDuration(totalDuration);
       const startTime = Math.min(trimStart, totalDuration);
       const endTime = Math.max(
         startTime,
@@ -120,8 +139,21 @@ const SoundComponent = ({
       setRemainingTime(Math.max(0, endTime - audioPlayer.currentTime));
     };
 
+    let playbackFinished = false;
+    const finishPlayback = () => {
+      if (playbackFinished) {
+        return;
+      }
+      playbackFinished = true;
+      audioPlayer.removeEventListener('timeupdate', onTimeUpdate);
+      audioPlayer.removeEventListener('ended', finishPlayback);
+      audioPlayer.removeEventListener('pause', finishPlayback);
+      resetPlaybackDisplay(audioPlayer.duration);
+    };
+
     audioPlayer.addEventListener('timeupdate', onTimeUpdate);
-    audioPlayer.addEventListener('ended', resetPlaybackDisplay, { once: true });
+    audioPlayer.addEventListener('ended', finishPlayback, { once: true });
+    audioPlayer.addEventListener('pause', finishPlayback, { once: true });
   };
 
   const updateVolume = (nextVolume: number) => {
@@ -226,20 +258,14 @@ const SoundComponent = ({
     const metadataPlayer = new Audio(sound.path);
     metadataPlayer.preload = 'metadata';
     const onMetadata = () => {
-      const totalDuration = metadataPlayer.duration;
-      setDuration(totalDuration);
-      setRemainingTime(
-        Math.max(
-          0,
-          Math.min(trimEnd ?? totalDuration, totalDuration) -
-            Math.min(trimStart, totalDuration)
-        )
-      );
+      updateKnownDuration(metadataPlayer.duration);
     };
     metadataPlayer.addEventListener('loadedmetadata', onMetadata);
+    metadataPlayer.addEventListener('durationchange', onMetadata);
     metadataPlayer.load();
     return () => {
       metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
+      metadataPlayer.removeEventListener('durationchange', onMetadata);
       metadataPlayer.src = '';
     };
   }, [sound.path, trimEnd, trimStart]);
