@@ -5,7 +5,6 @@ import path from 'path';
 import {
   app,
   BrowserWindow,
-  desktopCapturer,
   dialog,
   ipcMain,
   Menu,
@@ -104,28 +103,18 @@ const createWindow = async () => {
     await installExtensions();
   }
 
-  session.defaultSession.setDisplayMediaRequestHandler(
-    async (_request, callback) => {
-      try {
-        const [source] = await desktopCapturer.getSources({
-          types: ['screen'],
-          thumbnailSize: { width: 0, height: 0 },
-        });
-        if (!source) {
-          callback({});
-          return;
-        }
-        callback(
-          process.platform === 'win32'
-            ? { video: source, audio: 'loopback' }
-            : { video: source }
-        );
-      } catch (error) {
-        log.error('System audio capture is unavailable', error);
-        callback({});
-      }
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    if (!request.frame) {
+      callback({});
+      return;
     }
-  );
+
+    callback(
+      process.platform === 'win32'
+        ? { video: request.frame, audio: 'loopback' }
+        : { video: request.frame }
+    );
+  });
 
   const resourcesPath = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
