@@ -63,19 +63,34 @@
   margin: 0;
 }
 
+.filters-component .microphone-routing-control,
 .filters-component .recording-control {
   min-width: 36px;
   height: 36px;
   padding: 0 9px;
-  border: 2px solid #c60000;
   border-radius: 18px;
   background: transparent;
-  color: #c60000;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
   cursor: pointer;
+}
+
+.filters-component .microphone-routing-control {
+  border: 2px solid #8f8f8f;
+  color: #bdbdbd;
+}
+
+.filters-component .microphone-routing-control.active {
+  border-color: #008000;
+  color: #00a000;
+  background: rgba(0, 128, 0, 0.16);
+}
+
+.filters-component .recording-control {
+  border: 2px solid #c60000;
+  color: #c60000;
 }
 
 .filters-component .recording-control.recording {
