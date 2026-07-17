@@ -105,30 +105,25 @@ const createWindow = async () => {
   }
 
   session.defaultSession.setDisplayMediaRequestHandler(
-    (_request, callback) => {
-      desktopCapturer
-        .getSources({
+    async (_request, callback) => {
+      try {
+        const [source] = await desktopCapturer.getSources({
           types: ['screen'],
           thumbnailSize: { width: 0, height: 0 },
-        })
-        .then((sources) => {
-          const source = sources[0];
-          if (!source) {
-            callback({});
-            return false;
-          }
-          if (process.platform === 'win32') {
-            callback({ video: source, audio: 'loopback' });
-          } else {
-            callback({ video: source });
-          }
-          return true;
-        })
-        .catch((error) => {
-          log.error('System audio capture is unavailable', error);
-          callback({});
-          return false;
         });
+        if (!source) {
+          callback({});
+          return;
+        }
+        callback(
+          process.platform === 'win32'
+            ? { video: source, audio: 'loopback' }
+            : { video: source }
+        );
+      } catch (error) {
+        log.error('System audio capture is unavailable', error);
+        callback({});
+      }
     }
   );
 
