@@ -33,10 +33,11 @@ const normalizeSource = (source?: string): RecordingSource => {
 const normalize = (
   settings?: Partial<RecordingSettings> | null
 ): RecordingSettings => {
+  const timeoutSeconds = settings?.timeoutSeconds;
   const hasCurrentTimeout =
     (settings?.version || 0) >= 2 &&
-    typeof settings.timeoutSeconds === 'number' &&
-    Number.isFinite(settings.timeoutSeconds);
+    typeof timeoutSeconds === 'number' &&
+    Number.isFinite(timeoutSeconds);
 
   return {
     version: SETTINGS_VERSION,
@@ -48,7 +49,7 @@ const normalize = (
         ? Math.min(1, Math.max(0, settings.gain))
         : 1,
     timeoutSeconds: hasCurrentTimeout
-      ? Math.min(3600, Math.max(0, Math.round(settings.timeoutSeconds || 0)))
+      ? Math.min(3600, Math.max(0, Math.round(timeoutSeconds)))
       : 0,
     source: normalizeSource(settings?.source),
   };
