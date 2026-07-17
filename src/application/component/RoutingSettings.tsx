@@ -60,7 +60,7 @@ const RoutingSettings = () => {
 
   return (
     <section className="routing-settings">
-      <span className="routing-settings-title">Microphone routing</span>
+      <span className="routing-settings-title">Microphone passthrough</span>
       <label htmlFor="microphone-routing-enabled">
         <span>Passthrough:</span>
         <input
@@ -74,7 +74,7 @@ const RoutingSettings = () => {
         <output>{settings.enabled ? 'On' : 'Off'}</output>
       </label>
       <label htmlFor="microphone-routing-output">
-        <span>Route output:</span>
+        <span>Send mic to:</span>
         <select
           id="microphone-routing-output"
           value={settings.outputDeviceId}
@@ -106,8 +106,9 @@ const RoutingSettings = () => {
         </select>
       </label>
       <span className="routing-settings-helper">
-        Uses the recording input and gain. Select the same output for soundboard
-        playback to mix both signals.
+        Plays the selected microphone through an existing output. It does not
+        create a new microphone device. Speakers or headphones let you monitor
+        yourself; a virtual-cable input can feed the mixed signal into Discord.
       </span>
     </section>
   );
