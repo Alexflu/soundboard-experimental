@@ -177,9 +177,7 @@ const RecordingControl = () => {
           const normalized = (sample - 128) / 128;
           return total + normalized * normalized;
         }, 0);
-        emitRecordingLevel(
-          Math.min(1, Math.sqrt(sum / samples.length) * 4)
-        );
+        emitRecordingLevel(Math.min(1, Math.sqrt(sum / samples.length) * 4));
       }, 50);
 
       elapsedRef.current = setInterval(
