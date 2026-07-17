@@ -1,7 +1,7 @@
 const readFiniteDuration = (audio: HTMLAudioElement) =>
   Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null;
 
-export const getAudioDuration = (source: string): Promise<number | null> =>
+const getAudioDuration = (source: string): Promise<number | null> =>
   new Promise((resolve) => {
     const audio = new Audio(source);
     let settled = false;
@@ -57,3 +57,5 @@ export const getAudioDuration = (source: string): Promise<number | null> =>
     timeout = setTimeout(() => finish(readFiniteDuration(audio)), 5000);
     audio.load();
   });
+
+export default getAudioDuration;
