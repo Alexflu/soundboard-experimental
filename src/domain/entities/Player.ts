@@ -5,6 +5,11 @@ type AudioWithSinkId = HTMLAudioElement & {
   setSinkId?: (sinkId: string) => Promise<void>;
 };
 
+type AudioOutputVolume = {
+  id: string;
+  volume: number;
+};
+
 const normalizeVolume = (volume: number) =>
   Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 1;
 
@@ -14,6 +19,8 @@ class Player {
   private static globalMasterVolume = 1;
 
   private static globalAdditionalAudioOutputDeviceIds: string[] = [];
+
+  private static globalAudioOutputVolumes = new Map<string, number>();
 
   player: HTMLAudioElement | undefined;
 
@@ -54,15 +61,30 @@ class Player {
 
   static setGlobalMasterVolume(volume: number) {
     Player.globalMasterVolume = normalizeVolume(volume);
-    Player.activePlayers.forEach((player) =>
-      player.setMasterVolume(Player.globalMasterVolume)
-    );
+    Player.activePlayers.forEach((player) => player.applyVolume());
   }
 
   static setGlobalAdditionalAudioOutputDeviceIds(deviceIds: string[]) {
     Player.globalAdditionalAudioOutputDeviceIds = Array.from(
       new Set(deviceIds.filter(Boolean))
     );
+  }
+
+  static setGlobalAudioOutputVolumes(outputs: AudioOutputVolume[]) {
+    Player.globalAudioOutputVolumes = new Map(
+      outputs
+        .filter((output) => Boolean(output?.id))
+        .map((output) => [output.id, normalizeVolume(output.volume)])
+    );
+    Player.activePlayers.forEach((player) => player.applyVolume());
+  }
+
+  static setGlobalAudioOutputVolume(deviceId: string, volume: number) {
+    if (!deviceId) {
+      return;
+    }
+    Player.globalAudioOutputVolumes.set(deviceId, normalizeVolume(volume));
+    Player.activePlayers.forEach((player) => player.applyVolume());
   }
 
   isPlaying(): boolean {
@@ -194,14 +216,15 @@ class Player {
     this.applyVolume();
   }
 
-  private setMasterVolume(volume: number) {
-    this.masterVolume = normalizeVolume(volume);
-    this.applyVolume();
-  }
-
   private applyVolume() {
-    this.getAudioPlayers().forEach((audioPlayer) => {
-      audioPlayer.volume = this.sound.volume * this.masterVolume;
+    this.getAudioPlayers().forEach((audioPlayer, index) => {
+      const deviceId =
+        index === 0
+          ? this.audioOutputDeviceId
+          : this.additionalAudioOutputDeviceIds[index - 1];
+      const outputVolume =
+        Player.globalAudioOutputVolumes.get(deviceId) ?? this.masterVolume;
+      audioPlayer.volume = normalizeVolume(this.sound.volume * outputVolume);
     });
   }
 
