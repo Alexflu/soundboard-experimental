@@ -104,8 +104,19 @@ const sameAudioOutput = (left: AudioOutput, right: AudioOutput) => {
     leftAdditional.every(
       (output, index) =>
         output.id === rightAdditional[index]?.id &&
-        output.name === rightAdditional[index]?.name
+        output.name === rightAdditional[index]?.name &&
+        output.volume === rightAdditional[index]?.volume
     )
+  );
+};
+
+const findOutputVolume = (audioOutput: AudioOutput, outputId: string) => {
+  if (audioOutput.id === outputId) {
+    return audioOutput.volume ?? 1;
+  }
+  return (
+    audioOutput.additionalOutputs.find((output) => output.id === outputId)
+      ?.volume ?? 1
   );
 };
 
@@ -124,15 +135,19 @@ const ChooseAudioOutput = () => {
   const saveSelection = useCallback(
     (main: OptionsDevice, additional: OptionsDevice[]) => {
       const preferences = soundboardDomain.getUserPreferences();
-      const volume = preferences.audioOutput.volume ?? 1;
+      const currentOutput = preferences.audioOutput;
       const nextOutput = new AudioOutput(
         main.value.deviceId,
         main.label,
-        volume,
-        additional.map((option) => option.toAudioOutput())
+        findOutputVolume(currentOutput, main.value.deviceId),
+        additional.map((option) =>
+          option.toAudioOutput(
+            findOutputVolume(currentOutput, option.value.deviceId)
+          )
+        )
       );
 
-      if (!sameAudioOutput(preferences.audioOutput, nextOutput)) {
+      if (!sameAudioOutput(currentOutput, nextOutput)) {
         soundboardDomain.setUserPreferences(
           preferences.setAudioOutput(nextOutput)
         );
