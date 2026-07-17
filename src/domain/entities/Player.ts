@@ -25,10 +25,7 @@ const normalizeVolume = (volume: number) =>
 class Player {
   private static readonly activePlayers = new Set<Player>();
 
-  private static readonly outputLevels = new Map<
-    string,
-    Map<Player, number>
-  >();
+  private static readonly outputLevels = new Map<string, Map<Player, number>>();
 
   private static globalMasterVolume = 1;
 
@@ -39,6 +36,8 @@ class Player {
   player: HTMLAudioElement | undefined;
 
   sound: Sound;
+
+  bindingSoundId?: string;
 
   audioOutputDeviceId: string;
 
@@ -107,13 +106,23 @@ class Player {
     Player.activePlayers.forEach((player) => player.applyVolume());
   }
 
+  static setBindingSoundVolume(soundId: string, volume: number) {
+    const normalizedVolume = normalizeVolume(volume);
+    Player.activePlayers.forEach((player) => {
+      if (player.bindingSoundId === soundId) {
+        player.setVolume(normalizedVolume);
+      }
+    });
+  }
+
   private static updateOutputLevel(
     player: Player,
     deviceId: string,
     level: number
   ) {
     const normalizedLevel = Math.min(1, Math.max(0, level));
-    const levels = Player.outputLevels.get(deviceId) || new Map<Player, number>();
+    const levels =
+      Player.outputLevels.get(deviceId) || new Map<Player, number>();
 
     if (normalizedLevel > 0) {
       levels.set(player, normalizedLevel);
@@ -327,8 +336,7 @@ class Player {
           return total + normalized * normalized;
         }, 0);
         const level =
-          Math.min(1, Math.sqrt(sum / samples.length) * 4) *
-          audioPlayer.volume;
+          Math.min(1, Math.sqrt(sum / samples.length) * 4) * audioPlayer.volume;
         Player.updateOutputLevel(this, deviceId, level);
       }, 50);
 
