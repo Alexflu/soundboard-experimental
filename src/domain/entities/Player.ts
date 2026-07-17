@@ -71,10 +71,13 @@ class Player {
   }
 
   static setGlobalAudioOutputVolumes(outputs: AudioOutputVolume[]) {
-    Player.globalAudioOutputVolumes = new Map(
+    Player.globalAudioOutputVolumes = new Map<string, number>(
       outputs
         .filter((output) => Boolean(output?.id))
-        .map((output) => [output.id, normalizeVolume(output.volume)])
+        .map((output): [string, number] => [
+          output.id,
+          normalizeVolume(output.volume)
+        ])
     );
     Player.activePlayers.forEach((player) => player.applyVolume());
   }
@@ -104,7 +107,7 @@ class Player {
 
     const outputDeviceIds = [
       this.audioOutputDeviceId,
-      ...this.additionalAudioOutputDeviceIds,
+      ...this.additionalAudioOutputDeviceIds
     ];
     const audioPlayers = outputDeviceIds.map(() => {
       const audioPlayer = new Audio(this.sound.path) as HTMLAudioElement;
