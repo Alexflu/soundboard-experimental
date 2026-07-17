@@ -14,16 +14,16 @@ import logo from '../assets/logo.svg';
 import Filters from './domain/entities/Filters';
 import {
   DEFAULT_SEARCH_SLOT_HOTKEYS,
-  HotkeyMap,
+  HotkeyMap
 } from './domain/entities/HotkeyPreferences';
 import {
   AudioOutput,
   HotkeyBinding,
-  HotkeySettings,
+  HotkeySettings
 } from './domain/entities/UserPreferences';
 import {
   addRecentlyRemovedSound,
-  removeRecentlyRemovedSound,
+  removeRecentlyRemovedSound
 } from './application/recentlyRemovedSounds';
 
 const { ipcRenderer } = require('electron');
@@ -176,7 +176,7 @@ export default function App() {
 
       handlersByAccelerator[accelerator] = {
         callback,
-        errorMessage,
+        errorMessage
       };
 
       const registrationSucceeded = ipcRenderer?.sendSync(
@@ -256,7 +256,7 @@ export default function App() {
     hotkeySettings,
     registerPlayer,
     stopAll,
-    shortcutRegistrationRevision,
+    shortcutRegistrationRevision
   ]);
 
   return (
