@@ -13,6 +13,7 @@ import RemoveSound from './RemoveSound';
 import { captureHotkey } from './hotkeyCapture';
 import { toHotkeyDisplay } from '../../domain/entities/HotkeyPreferences';
 import PlaybackTrimHandles from './PlaybackTrimHandles';
+import { getAudioDuration } from '../audioDuration';
 
 const formatDuration = (duration: number | null) => {
   if (duration === null || !Number.isFinite(duration)) {
@@ -261,18 +262,17 @@ const SoundComponent = ({
   }, [duration, player, sound, trim]);
 
   useEffect(() => {
-    const metadataPlayer = new Audio(sound.path);
-    metadataPlayer.preload = 'metadata';
-    const onMetadata = () => {
-      updateKnownDuration(metadataPlayer.duration);
+    let cancelled = false;
+    const loadDuration = async () => {
+      const totalDuration = await getAudioDuration(sound.path);
+      if (!cancelled && totalDuration !== null) {
+        updateKnownDuration(totalDuration);
+      }
     };
-    metadataPlayer.addEventListener('loadedmetadata', onMetadata);
-    metadataPlayer.addEventListener('durationchange', onMetadata);
-    metadataPlayer.load();
+
+    loadDuration().catch(() => {});
     return () => {
-      metadataPlayer.removeEventListener('loadedmetadata', onMetadata);
-      metadataPlayer.removeEventListener('durationchange', onMetadata);
-      metadataPlayer.src = '';
+      cancelled = true;
     };
   }, [sound.path, updateKnownDuration]);
 
