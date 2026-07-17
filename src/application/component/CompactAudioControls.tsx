@@ -17,11 +17,13 @@ const formatDeviceLabel = (device: MediaDeviceInfo, fallback: string) =>
 
 const CompactAudioControls = () => {
   const initialPreferences = soundboardDomain.getUserPreferences();
-  const [recordingSettings, setRecordingSettings] = useState(
-    getRecordingSettings
-  );
-  const [selectedOutput, setSelectedOutput] = useState(
+  const [recordingSettings, setRecordingSettings] =
+    useState(getRecordingSettings);
+  const [audioOutput, setAudioOutput] = useState(
     initialPreferences.audioOutput
+  );
+  const [selectedOutputId, setSelectedOutputId] = useState(
+    initialPreferences.audioOutput.id
   );
   const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [outputDevices, setOutputDevices] = useState<MediaDeviceInfo[]>([]);
@@ -42,7 +44,9 @@ const CompactAudioControls = () => {
         );
         return true;
       })
-      .catch((error) => toast.error(`Cannot enumerate audio devices: ${error}`));
+      .catch((error) =>
+        toast.error(`Cannot enumerate audio devices: ${error}`)
+      );
   }, []);
 
   useEffect(() => {
@@ -71,13 +75,27 @@ const CompactAudioControls = () => {
 
   useEffect(() => {
     const unregister = soundboardDomain.watchUserPreferences(
-      (preferences: UserPreferences) => setSelectedOutput(preferences.audioOutput)
+      (preferences: UserPreferences) => {
+        const nextAudioOutput = preferences.audioOutput;
+        const activeOutputIds = new Set([
+          nextAudioOutput.id,
+          ...(nextAudioOutput.additionalOutputs || []).map(
+            (output) => output.id
+          ),
+        ]);
+        setAudioOutput(nextAudioOutput);
+        setSelectedOutputId((current) =>
+          activeOutputIds.has(current) ? current : nextAudioOutput.id
+        );
+      }
     );
     return () => unregister();
   }, []);
 
   const updateInput = (deviceId: string) => {
-    const selected = inputDevices.find((device) => device.deviceId === deviceId);
+    const selected = inputDevices.find(
+      (device) => device.deviceId === deviceId
+    );
     setRecordingSettings(
       saveRecordingSettings({
         inputDeviceId: deviceId,
@@ -93,29 +111,42 @@ const CompactAudioControls = () => {
   };
 
   const updateOutput = (deviceId: string) => {
+    const preferences = soundboardDomain.getUserPreferences();
+    const currentOutput = preferences.audioOutput;
+    const activeOutputs = [
+      currentOutput,
+      ...(currentOutput.additionalOutputs || []),
+    ];
+    if (activeOutputs.some((output) => output.id === deviceId)) {
+      setSelectedOutputId(deviceId);
+      return;
+    }
+
     const selected = outputDevices.find(
       (device) => device.deviceId === deviceId
     );
-    const preferences = soundboardDomain.getUserPreferences();
     const outputName = selected
       ? formatDeviceLabel(selected, 'Default output')
       : 'Default output';
-    const additionalOutputs = preferences.audioOutput.additionalOutputs.filter(
+    const additionalOutputs = currentOutput.additionalOutputs.filter(
       (output) => output.id !== deviceId
     );
 
+    setSelectedOutputId(deviceId);
     soundboardDomain.setUserPreferences(
       preferences.setAudioOutput(
-        new AudioOutput(
-          deviceId,
-          outputName,
-          preferences.audioOutput.volume,
-          additionalOutputs
-        )
+        new AudioOutput(deviceId, outputName, 1, additionalOutputs)
       )
     );
   };
 
+  const activeOutputs = [
+    audioOutput,
+    ...(audioOutput.additionalOutputs || []),
+  ];
+  const activeOutputIds = new Set(activeOutputs.map((output) => output.id));
+  const selectedOutput =
+    activeOutputs.find((output) => output.id === selectedOutputId) || audioOutput;
   const hasSelectedInput = inputDevices.some(
     (device) => device.deviceId === recordingSettings.inputDeviceId
   );
@@ -161,8 +192,8 @@ const CompactAudioControls = () => {
       <RecordingControl />
       <select
         className="compact-device-select"
-        aria-label="Main audio output"
-        title={`Main output: ${selectedOutput.name}`}
+        aria-label="Audio output volume target"
+        title={`Output volume: ${selectedOutput.name}`}
         value={selectedOutput.id}
         onChange={(event) => updateOutput(event.target.value)}
       >
@@ -173,13 +204,17 @@ const CompactAudioControls = () => {
           selectedOutput.id !== 'default' && (
             <option value="default">Default output</option>
           )}
-        {outputDevices.map((device) => (
-          <option key={device.deviceId} value={device.deviceId}>
-            {formatDeviceLabel(device, 'Audio output')}
-          </option>
-        ))}
+        {outputDevices.map((device) => {
+          const isActive = activeOutputIds.has(device.deviceId);
+          return (
+            <option key={device.deviceId} value={device.deviceId}>
+              {formatDeviceLabel(device, 'Audio output')}
+              {isActive ? ' (active)' : ''}
+            </option>
+          );
+        })}
       </select>
-      <MasterVolumeControl />
+      <MasterVolumeControl outputId={selectedOutput.id} />
     </div>
   );
 };
