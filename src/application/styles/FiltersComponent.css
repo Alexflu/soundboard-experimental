@@ -85,3 +85,7 @@
 .filters-component .recording-control span {
   font-size: 12px;
 }
+
+.sounds-view .actions .button-stop-all {
+  margin-left: 8px;
+}
