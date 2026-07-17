@@ -29,10 +29,12 @@ const MicrophoneRoutingControl = () => {
         settings.enabled ? ' active' : ''
       }`}
       onClick={toggleRouting}
-      title={`${settings.enabled ? 'Disable' : 'Enable'} microphone routing to ${
+      title={`${settings.enabled ? 'Disable' : 'Enable'} microphone passthrough to ${
         settings.outputDeviceName
       }`}
-      aria-label={`${settings.enabled ? 'Disable' : 'Enable'} microphone routing`}
+      aria-label={`${
+        settings.enabled ? 'Disable' : 'Enable'
+      } microphone passthrough`}
     >
       {settings.enabled ? <FaMicrophone /> : <FaMicrophoneSlash />}
     </button>
