@@ -17,6 +17,7 @@ import {
   HotkeyMap,
 } from './domain/entities/HotkeyPreferences';
 import {
+  AudioOutput,
   HotkeyBinding,
   HotkeySettings,
 } from './domain/entities/UserPreferences';
@@ -32,17 +33,17 @@ type HotkeyHandler = {
   errorMessage: string;
 };
 
-const applyAdditionalAudioOutputs = (
-  outputs: Array<{ id: string }> | undefined
-) => {
+const applyAudioOutputs = (audioOutput: AudioOutput) => {
+  const additionalOutputs = audioOutput.additionalOutputs || [];
   Player.setGlobalAdditionalAudioOutputDeviceIds(
-    (outputs || []).map((output) => output.id)
+    additionalOutputs.map((output) => output.id)
   );
+  Player.setGlobalAudioOutputVolumes([audioOutput, ...additionalOutputs]);
 };
 
 export default function App() {
   const initialPreferences = soundboardDomain.getUserPreferences();
-  applyAdditionalAudioOutputs(initialPreferences.audioOutput.additionalOutputs);
+  applyAudioOutputs(initialPreferences.audioOutput);
   const stopAllSoundsRef = useRef<Array<() => void>>([]);
   const [filters, setFilters] = useState(new Filters(''));
   const [hotkeys, setHotkeys] = useState<HotkeyMap>(initialPreferences.hotkeys);
@@ -130,9 +131,7 @@ export default function App() {
           .forEach((binding) => removeRecentlyRemovedSound(binding.sound.id));
         previousBindingsRef.current = userPreferences.bindings;
 
-        applyAdditionalAudioOutputs(
-          userPreferences.audioOutput.additionalOutputs
-        );
+        applyAudioOutputs(userPreferences.audioOutput);
         setHotkeys(userPreferences.hotkeys);
         setBindings(userPreferences.bindings);
         setHotkeySettings(userPreferences.hotkeySettings);
