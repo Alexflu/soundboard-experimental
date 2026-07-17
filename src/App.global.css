@@ -14,6 +14,7 @@
 @import 'application/styles/HotkeySettings.css';
 @import 'application/styles/RecentlyRemovedHistory.css';
 @import 'application/styles/RecordingSettings.css';
+@import 'application/styles/RoutingSettings.css';
 @import 'application/styles/RangeValueTooltip.css';
 
 /* toastify */
